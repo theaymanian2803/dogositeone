@@ -21,6 +21,15 @@ import { useUserAuth } from "@/hooks/useUserAuth";
 import { turso } from "@/integrations/turso/client";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
+type ProductSearchResult = {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  image_url: string;
+  category: string;
+};
+
 const staticNav = [
   { label: "Home", to: "/" },
   { label: "Shop", to: "/shop" },
@@ -42,10 +51,17 @@ export function SiteHeader() {
   const navigate = useNavigate();
   const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [search, setSearch] = useState("");
+  const [results, setResults] = useState<ProductSearchResult[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const megaRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestSearch = useRef("");
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const sheetSearchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     turso.execute("SELECT * FROM categories ORDER BY name").then(({ rows }) => {
@@ -76,13 +92,74 @@ export function SiteHeader() {
     };
   }, [megaOpen]);
 
+  useEffect(() => {
+    latestSearch.current = search.trim();
+    const q = search.trim();
+    if (searchDebounce.current) clearTimeout(searchDebounce.current);
+    if (!q) {
+      setResults([]);
+      setSearchOpen(false);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchOpen(true);
+    setSearchLoading(true);
+    searchDebounce.current = setTimeout(async () => {
+      const rs = await turso.execute({
+        sql: "SELECT id, name, slug, price, image_url, category FROM products WHERE name LIKE ? OR category LIKE ? OR tag LIKE ? ORDER BY created_at DESC LIMIT 6",
+        args: [`%${q}%`, `%${q}%`, `%${q}%`],
+      });
+      if (latestSearch.current === q) {
+        setResults(rs.rows as unknown as ProductSearchResult[]);
+        setSearchLoading(false);
+      }
+    }, 250);
+    return () => {
+      if (searchDebounce.current) clearTimeout(searchDebounce.current);
+    };
+  }, [search]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        desktopSearchRef.current?.contains(e.target as Node) ||
+        sheetSearchRef.current?.contains(e.target as Node)
+      ) {
+        return;
+      }
+      setSearchOpen(false);
+    };
+    const keydown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSearchOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("keydown", keydown);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", keydown);
+    };
+  }, [searchOpen]);
+
+  function goToResults() {
+    const q = search.trim();
+    if (!q) return;
+    setSearchOpen(false);
+    setSheetOpen(false);
+    navigate(`/shop?q=${encodeURIComponent(q)}`);
+  }
+
+  function selectResult(p: ProductSearchResult) {
+    setSearch("");
+    setResults([]);
+    setSearchOpen(false);
+    setSheetOpen(false);
+    navigate(`/product/${p.slug}`);
+  }
+
   function handleSearch(e?: React.FormEvent) {
     e?.preventDefault();
-    const q = search.trim();
-    if (q) {
-      navigate(`/shop?q=${encodeURIComponent(q)}`);
-      setSheetOpen(false);
-    }
+    goToResults();
   }
 
   return (
@@ -172,21 +249,31 @@ export function SiteHeader() {
                 </div>
               </nav>
               <div className="border-t border-border px-4 py-4">
-                <form onSubmit={handleSearch} className="relative">
-                  <input
-                    type="search"
-                    placeholder="Search products…"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="h-10 w-full rounded-full border border-border bg-secondary/60 pl-4 pr-10 text-sm outline-none focus:border-accent"
+                <div ref={sheetSearchRef} className="relative">
+                  <form onSubmit={handleSearch} className="relative">
+                    <input
+                      type="search"
+                      placeholder="Search products…"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="h-10 w-full rounded-full border border-border bg-secondary/60 pl-4 pr-10 text-sm outline-none focus:border-accent"
+                    />
+                    <button
+                      type="submit"
+                      className="absolute right-1 top-1 grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground"
+                    >
+                      <Search className="h-4 w-4" />
+                    </button>
+                  </form>
+                  <SearchResults
+                    query={search}
+                    open={searchOpen}
+                    loading={searchLoading}
+                    results={results}
+                    onSelect={selectResult}
+                    onViewAll={goToResults}
                   />
-                  <button
-                    type="submit"
-                    className="absolute right-1 top-1 grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground"
-                  >
-                    <Search className="h-4 w-4" />
-                  </button>
-                </form>
+                </div>
               </div>
             </div>
           </SheetContent>
@@ -270,21 +357,31 @@ export function SiteHeader() {
         )}
 
         <div className="ml-auto flex items-center gap-1.5 sm:gap-3">
-          <form onSubmit={handleSearch} className="relative hidden md:block lg:w-72">
-            <input
-              type="search"
-              placeholder="Search products…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-full rounded-full border border-border bg-secondary/60 pl-4 pr-10 text-sm outline-none transition-colors focus:border-accent"
+          <div ref={desktopSearchRef} className="relative hidden md:block lg:w-72">
+            <form onSubmit={handleSearch} className="relative">
+              <input
+                type="search"
+                placeholder="Search products…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9 w-full rounded-full border border-border bg-secondary/60 pl-4 pr-10 text-sm outline-none transition-colors focus:border-accent"
+              />
+              <button
+                type="submit"
+                className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"
+              >
+                <Search className="h-3.5 w-3.5" />
+              </button>
+            </form>
+            <SearchResults
+              query={search}
+              open={searchOpen}
+              loading={searchLoading}
+              results={results}
+              onSelect={selectResult}
+              onViewAll={goToResults}
             />
-            <button
-              type="submit"
-              className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"
-            >
-              <Search className="h-3.5 w-3.5" />
-            </button>
-          </form>
+          </div>
           <Link
             to="/cart"
             className="relative grid h-9 w-9 place-items-center rounded-full hover:bg-secondary"
@@ -324,5 +421,65 @@ export function SiteHeader() {
         </div>
       </div>
     </header>
+  );
+}
+
+function SearchResults({
+  query,
+  open,
+  loading,
+  results,
+  onSelect,
+  onViewAll,
+}: {
+  query: string;
+  open: boolean;
+  loading: boolean;
+  results: ProductSearchResult[];
+  onSelect: (p: ProductSearchResult) => void;
+  onViewAll: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/10">
+      {loading ? (
+        <p className="px-4 py-3 text-sm text-muted-foreground">Searching…</p>
+      ) : results.length === 0 ? (
+        <p className="px-4 py-3 text-sm text-muted-foreground">No products found for “{query}”</p>
+      ) : (
+        <>
+          <ul className="max-h-80 overflow-y-auto">
+            {results.map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(p)}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-secondary"
+                >
+                  <img
+                    src={p.image_url}
+                    alt=""
+                    className="h-11 w-11 rounded-lg border border-border bg-background object-contain p-1"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{p.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      ${Number(p.price).toFixed(2)}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={onViewAll}
+            className="w-full border-t border-border px-4 py-2.5 text-center text-sm font-medium text-accent transition-colors hover:bg-secondary"
+          >
+            View all results for “{query}” &rarr;
+          </button>
+        </>
+      )}
+    </div>
   );
 }

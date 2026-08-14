@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useUserAuth } from "@/hooks/useUserAuth";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -8,6 +8,9 @@ import { SiteFooter } from "@/components/SiteFooter";
 export default function Login() {
   const { login, user } = useUserAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectParam = searchParams.get("redirect");
+  const redirect = redirectParam && redirectParam.startsWith("/") ? redirectParam : "/account";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,8 +20,8 @@ export default function Login() {
   }, []);
 
   useEffect(() => {
-    if (user) navigate("/account");
-  }, [user, navigate]);
+    if (user) navigate(redirect);
+  }, [user, navigate, redirect]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +29,7 @@ export default function Login() {
     try {
       await login(email, password);
       toast.success("Welcome back!");
-      navigate("/account");
+      navigate(redirect);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {

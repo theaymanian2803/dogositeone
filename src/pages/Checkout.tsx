@@ -3,14 +3,23 @@ import { Link, useNavigate } from "react-router-dom";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { useCart } from "@/hooks/useCart";
+import { useUserAuth } from "@/hooks/useUserAuth";
 import { turso } from "@/integrations/turso/client";
 import { toast } from "sonner";
-import { Package } from "lucide-react";
+import { Package, User, ArrowRight } from "lucide-react";
 
 export default function Checkout() {
   const { items, subtotal, clear } = useCart();
+  const { user, loading } = useUserAuth();
   const navigate = useNavigate();
   const [placing, setPlacing] = useState(false);
+  const [guestCheckout, setGuestCheckout] = useState(() => {
+    try {
+      return localStorage.getItem("checkout_guest") === "1";
+    } catch {
+      return false;
+    }
+  });
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -24,9 +33,82 @@ export default function Checkout() {
     document.title = "Checkout — PetPals";
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    const parts = user.name.trim().split(" ");
+    setForm((f) => ({
+      ...f,
+      first_name: f.first_name || (parts[0] ?? ""),
+      last_name: f.last_name || parts.slice(1).join(" "),
+    }));
+  }, [user]);
+
   function update(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
   }
+
+  function continueAsGuest() {
+    setGuestCheckout(true);
+    try {
+      localStorage.setItem("checkout_guest", "1");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const orderSummaryBody = (
+    <>
+      <ul className="space-y-3">
+        {items.map((i) => (
+          <li key={i.id} className="flex items-center gap-3">
+            <div className="h-10 w-10 shrink-0 overflow-hidden bg-background border border-border">
+              <img
+                src={i.image_url}
+                alt={i.name}
+                className="h-full w-full object-contain p-0.5"
+              />
+            </div>
+            <div className="flex-1 min-w-0 text-sm">
+              <p className="font-medium text-foreground truncate">{i.name}</p>
+              <p className="text-muted-foreground">× {i.qty}</p>
+            </div>
+            <span className="text-sm font-medium text-foreground shrink-0">
+              ${(i.qty * Number(i.price)).toFixed(2)}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <dl className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
+        <div className="flex justify-between text-muted-foreground">
+          <dt>Subtotal</dt>
+          <dd>${subtotal.toFixed(2)}</dd>
+        </div>
+        <div className="flex justify-between text-muted-foreground">
+          <dt>Shipping</dt>
+          <dd>
+            {shipping === 0 ? (
+              <span className="text-emerald-600">Free</span>
+            ) : (
+              `$${shipping.toFixed(2)}`
+            )}
+          </dd>
+        </div>
+        <div className="flex justify-between border-t border-border pt-2 text-base font-semibold text-foreground">
+          <dt>Total</dt>
+          <dd>${total.toFixed(2)}</dd>
+        </div>
+      </dl>
+    </>
+  );
+
+  const orderAside = (
+    <aside className="h-fit border border-border">
+      <div className="px-6 py-4 border-b border-border">
+        <h2 className="text-base font-semibold">Your order</h2>
+      </div>
+      <div className="px-6 py-5">{orderSummaryBody}</div>
+    </aside>
+  );
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,9 +160,71 @@ export default function Checkout() {
               ← Back to store
             </Link>
           </div>
+        ) : loading ? (
+          <p className="py-20 text-center text-muted-foreground">Loading…</p>
+        ) : !user && !guestCheckout ? (
+          <div className="mt-10 grid gap-10 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <div className="border border-border">
+                <div className="px-6 py-4 border-b border-border">
+                  <h2 className="text-base font-semibold">Checkout</h2>
+                </div>
+                <div className="px-6 py-8">
+                  <div className="flex items-start gap-3">
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
+                      <User className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Have an account?</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Sign in for a faster checkout and order tracking. Prefer not to? That's
+                        fine — you can check out as a guest.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    to="/login?redirect=/checkout"
+                    className="mt-6 flex w-full items-center justify-center gap-2 border border-accent bg-accent py-3 text-sm font-semibold text-white hover:opacity-90 transition-all active:scale-[0.98]"
+                  >
+                    Sign in to checkout
+                  </Link>
+                  <div className="my-6 flex items-center gap-4 text-xs uppercase tracking-wider text-muted-foreground">
+                    <span className="h-px flex-1 bg-border" /> or
+                    <span className="h-px flex-1 bg-border" />
+                  </div>
+                  <button
+                    onClick={continueAsGuest}
+                    className="flex w-full items-center justify-center gap-2 border border-border py-3 text-sm font-semibold hover:bg-secondary transition-colors"
+                  >
+                    Continue as guest <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+            {orderAside}
+          </div>
         ) : (
           <form onSubmit={onSubmit} className="mt-10 grid gap-10 lg:grid-cols-3">
             <div className="lg:col-span-2">
+              {user && (
+                <div className="mb-4 flex items-center justify-between border border-border px-4 py-3 text-sm">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <User className="h-4 w-4" /> Signed in as{" "}
+                    <span className="font-medium text-foreground">{user.name}</span>
+                  </span>
+                  <Link to="/login?redirect=/checkout" className="text-accent hover:underline">
+                    Switch account
+                  </Link>
+                </div>
+              )}
+              {!user && guestCheckout && (
+                <div className="mb-4 flex items-center justify-between border border-border px-4 py-3 text-sm">
+                  <span className="text-muted-foreground">Checking out as a guest</span>
+                  <Link to="/login?redirect=/checkout" className="text-accent hover:underline">
+                    Sign in instead
+                  </Link>
+                </div>
+              )}
               <div className="border border-border">
                 <div className="px-6 py-4 border-b border-border">
                   <h2 className="text-base font-semibold">Your details</h2>
@@ -146,40 +290,7 @@ export default function Checkout() {
                 <h2 className="text-base font-semibold">Your order</h2>
               </div>
               <div className="px-6 py-5">
-                <ul className="space-y-3">
-                  {items.map((i) => (
-                    <li key={i.id} className="flex items-center gap-3">
-                      <div className="h-10 w-10 shrink-0 overflow-hidden bg-background border border-border">
-                        <img
-                          src={i.image_url}
-                          alt={i.name}
-                          className="h-full w-full object-contain p-0.5"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0 text-sm">
-                        <p className="font-medium text-foreground truncate">{i.name}</p>
-                        <p className="text-muted-foreground">× {i.qty}</p>
-                      </div>
-                      <span className="text-sm font-medium text-foreground shrink-0">
-                        ${(i.qty * Number(i.price)).toFixed(2)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <dl className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
-                  <div className="flex justify-between text-muted-foreground">
-                    <dt>Subtotal</dt>
-                    <dd>${subtotal.toFixed(2)}</dd>
-                  </div>
-                  <div className="flex justify-between text-muted-foreground">
-                    <dt>Shipping</dt>
-                    <dd>{shipping === 0 ? <span className="text-emerald-600">Free</span> : `$${shipping.toFixed(2)}`}</dd>
-                  </div>
-                  <div className="flex justify-between border-t border-border pt-2 text-base font-semibold text-foreground">
-                    <dt>Total</dt>
-                    <dd>${total.toFixed(2)}</dd>
-                  </div>
-                </dl>
+                {orderSummaryBody}
                 <button
                   type="submit"
                   disabled={placing}

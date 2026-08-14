@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
-import { ShoppingBag, Search, SlidersHorizontal, X, ChevronUp } from "lucide-react";
+import { ShoppingBag, SlidersHorizontal, X, ChevronUp } from "lucide-react";
 
 type Product = {
   id: string;
@@ -29,8 +29,6 @@ export default function Shop() {
 
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "price-asc" | "price-desc" | "name-asc">(
     "newest",
   );
@@ -63,17 +61,17 @@ export default function Shop() {
 
     if (query.trim()) {
       const q = query.toLowerCase();
-      list = list.filter((p) => p.name.toLowerCase().includes(q));
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          (p.tag ?? "").toLowerCase().includes(q),
+      );
     }
 
     if (selectedCategories.length > 0) {
       list = list.filter((p) => selectedCategories.includes(p.category));
     }
-
-    const min = parseFloat(minPrice);
-    const max = parseFloat(maxPrice);
-    if (!isNaN(min)) list = list.filter((p) => Number(p.price) >= min);
-    if (!isNaN(max)) list = list.filter((p) => Number(p.price) <= max);
 
     switch (sortBy) {
       case "price-asc":
@@ -92,7 +90,7 @@ export default function Shop() {
     }
 
     return list;
-  }, [products, query, selectedCategories, minPrice, maxPrice, sortBy]);
+  }, [products, query, selectedCategories, sortBy]);
 
   function toggleCategory(slug: string) {
     setSelectedCategories((prev) =>
@@ -103,18 +101,25 @@ export default function Shop() {
   function clearFilters() {
     setQuery("");
     setSelectedCategories([]);
-    setMinPrice("");
-    setMaxPrice("");
     setSortBy("newest");
-    setSearchParams(new URLSearchParams());
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("q");
+      return next;
+    });
+  }
+
+  function clearSearch() {
+    setQuery("");
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("q");
+      return next;
+    });
   }
 
   const activeFilterCount =
-    (query ? 1 : 0) +
-    selectedCategories.length +
-    (minPrice ? 1 : 0) +
-    (maxPrice ? 1 : 0) +
-    (sortBy !== "newest" ? 1 : 0);
+    selectedCategories.length + (query ? 1 : 0) + (sortBy !== "newest" ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -135,56 +140,47 @@ export default function Shop() {
           </p>
         </header>
 
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="relative flex-1 md:max-w-md">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={query}
-              onChange={(e) => {
-                const value = e.target.value;
-                setQuery(value);
-                setSearchParams((prev) => {
-                  const next = new URLSearchParams(prev);
-                  if (value.trim()) next.set("q", value.trim());
-                  else next.delete("q");
-                  return next;
-                });
-              }}
-              className="h-11 w-full rounded-full border border-border bg-secondary/60 pl-5 pr-12 text-sm outline-none focus:border-accent"
-            />
-            <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          </div>
+        <div className="mb-8 flex items-center gap-4">
+          <button
+            onClick={() => setMobileFiltersOpen((s) => !s)}
+            className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium lg:hidden"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-accent text-[10px] text-white">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setMobileFiltersOpen((s) => !s)}
-              className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium lg:hidden"
+          <div className="ml-auto flex items-center gap-2">
+            <label className="text-sm text-muted-foreground hidden sm:inline">Sort by</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="h-10 rounded-full border border-border bg-card px-4 text-sm outline-none focus:border-accent"
             >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filters
-              {activeFilterCount > 0 && (
-                <span className="grid h-5 w-5 place-items-center rounded-full bg-accent text-[10px] text-white">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground hidden sm:inline">Sort by</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="h-10 rounded-full border border-border bg-card px-4 text-sm outline-none focus:border-accent"
-              >
-                <option value="newest">Newest</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="name-asc">Name: A-Z</option>
-              </select>
-            </div>
+              <option value="newest">Newest</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="name-asc">Name: A-Z</option>
+            </select>
           </div>
         </div>
+
+        {query.trim() && (
+          <div className="mb-8 flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm">
+            <span className="text-muted-foreground">Search results for</span>
+            <span className="font-semibold">“{query.trim()}”</span>
+            <button
+              onClick={clearSearch}
+              className="ml-auto inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-foreground hover:bg-secondary/70"
+            >
+              <X className="h-3 w-3" /> Clear search
+            </button>
+          </div>
+        )}
 
         <div className="flex gap-10">
           <aside
@@ -225,29 +221,6 @@ export default function Shop() {
                 {categories.length === 0 && (
                   <p className="text-sm text-muted-foreground">No categories.</p>
                 )}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="mb-3 font-bold">Price</h3>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={0}
-                  placeholder="Min"
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
-                  className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                />
-                <span className="text-muted-foreground">—</span>
-                <input
-                  type="number"
-                  min={0}
-                  placeholder="Max"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                />
               </div>
             </div>
           </aside>
