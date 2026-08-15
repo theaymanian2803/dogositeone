@@ -1,14 +1,20 @@
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
+import { useSettings, type Settings as StoreSettings } from "@/hooks/useSettings";
+import { sampleCategories, sampleProducts } from "@/lib/sampleData";
 import { turso } from "@/integrations/turso/client";
 import { ADMIN_EMAIL } from "@/lib/admin";
 import {
   Box,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Database,
   DollarSign,
+  Download,
   Hash,
+  KeyRound,
   Layers,
   LogOut,
   MapPin,
@@ -18,10 +24,14 @@ import {
   Pencil,
   Phone,
   Plus,
+  Save,
   Search,
+  Settings,
   ShoppingCart,
+  Star,
   Trash2,
   Upload,
+  UploadCloud,
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -35,6 +45,7 @@ type Product = {
   description: string;
   price: number;
   image_url: string;
+  images: string | null;
   category: string;
   badge: string | null;
   tag: string | null;
@@ -55,6 +66,20 @@ type Order = {
   created_at: string;
 };
 
+type Review = {
+  id: string;
+  product_id: string;
+  user_id: string | null;
+  user_name: string;
+  rating: number;
+  title: string | null;
+  body: string;
+  image_url: string | null;
+  status: string;
+  created_at: string;
+  product_name?: string;
+};
+
 const slugify = (s: string) =>
   s
     .toLowerCase()
@@ -62,17 +87,70 @@ const slugify = (s: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
+const parseImages = (raw: string | null): string[] => {
+  try {
+    const arr = JSON.parse(raw ?? "[]");
+    return Array.isArray(arr) ? [arr[0] ?? "", arr[1] ?? "", arr[2] ?? ""] : ["", "", ""];
+  } catch {
+    return ["", "", ""];
+  }
+};
+
 const emptyForm = {
   name: "",
   description: "",
   price: "",
   image_url: "",
+  images: ["", "", ""],
   category: "",
   badge: "",
   tag: "",
 };
 
-type Tab = "products" | "categories" | "orders";
+const emptyReviewForm = {
+  product_id: "",
+  user_name: "PetPals Team",
+  rating: 5,
+  title: "",
+  body: "",
+  image_url: "",
+};
+
+type Tab = "products" | "categories" | "orders" | "reviews" | "settings" | "data";
+
+const settingsLabels: Record<keyof StoreSettings, string> = {
+  brand_name: "Store name",
+  tagline: "Footer tagline",
+  hero_badge: "Hero badge text",
+  hero_title: "Hero title",
+  hero_subtitle: "Hero subtitle",
+  promo_title: "Promo title",
+  promo_old_price: "Promo old price",
+  promo_price: "Promo price",
+  contact_email: "Contact email",
+  contact_phone: "Contact phone",
+  contact_address: "Contact address",
+  support_hours: "Support hours",
+};
+
+const settingsGroups: { title: string; fields: (keyof StoreSettings)[] }[] = [
+  { title: "Store & Brand", fields: ["brand_name", "tagline"] },
+  {
+    title: "Homepage",
+    fields: ["hero_badge", "hero_title", "hero_subtitle", "promo_title", "promo_old_price", "promo_price"],
+  },
+  {
+    title: "Contact info",
+    fields: ["contact_email", "contact_phone", "contact_address", "support_hours"],
+  },
+];
+
+const settingsTextareas = new Set<keyof StoreSettings>([
+  "tagline",
+  "hero_title",
+  "hero_subtitle",
+  "contact_address",
+]);
 
 const statusConfig: Record<string, { label: string; pill: string; dot: string }> = {
   new: {
@@ -127,13 +205,30 @@ export default function Admin() {
   const [saving, setSaving] = useState(false);
   const [newCategory, setNewCategory] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [page, setPage] = useState(1);
   const fileRef = useRef<HTMLInputElement>(null);
+  const extraFileRef = useRef<HTMLInputElement>(null);
+  const extraSlotRef = useRef<number>(0);
   const [confirm, setConfirm] = useState<ConfirmAction>(null);
+  const [reviewForm, setReviewForm] = useState(emptyReviewForm);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [savingReview, setSavingReview] = useState(false);
+  const reviewFileRef = useRef<HTMLInputElement>(null);
+  const { settings, refresh: refreshSettings } = useSettings();
+  const [settingsForm, setSettingsForm] = useState<StoreSettings>(settings);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ current: "", next: "", confirm: "" });
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [dataBusy, setDataBusy] = useState(false);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
+
+  useEffect(() => {
+    setSettingsForm(settings);
+  }, [settings]);
 
   useEffect(() => {
     document.title = "Admin — PetPals";
@@ -144,16 +239,59 @@ export default function Admin() {
       ? "Order Management"
       : tab === "products"
         ? "Product Management"
-        : "Category Management";
+        : tab === "reviews"
+          ? "Review Management"
+          : tab === "settings"
+            ? "Store Settings"
+            : tab === "data"
+              ? "Store Data"
+              : "Category Management";
+
+  async function ensureSchema() {
+    const cols = await turso.execute("PRAGMA table_info(products)");
+    if (!(cols.rows as unknown as { name: string }[]).some((c) => c.name === "images")) {
+      await turso.execute("ALTER TABLE products ADD COLUMN images TEXT");
+    }
+    const tables = await turso.execute(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='reviews'",
+    );
+    if (tables.rows.length === 0) {
+      await turso.execute(`
+        CREATE TABLE reviews (
+          id         TEXT PRIMARY KEY,
+          product_id TEXT NOT NULL,
+          user_id    TEXT,
+          user_name  TEXT NOT NULL,
+          rating     INTEGER NOT NULL,
+          title      TEXT,
+          body       TEXT NOT NULL,
+          image_url  TEXT,
+          status     TEXT NOT NULL DEFAULT 'pending',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+    }
+    await turso.execute(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key   TEXT PRIMARY KEY,
+        value TEXT
+      )
+    `);
+  }
 
   async function load() {
-    const [pRs, cRs, oRs] = await Promise.all([
+    await ensureSchema();
+    const [pRs, cRs, oRs, rRs] = await Promise.all([
       turso.execute("SELECT * FROM products ORDER BY created_at DESC"),
       turso.execute("SELECT * FROM categories ORDER BY name"),
       turso.execute("SELECT * FROM orders ORDER BY created_at DESC"),
+      turso.execute(
+        "SELECT r.*, p.name AS product_name FROM reviews r LEFT JOIN products p ON r.product_id = p.id ORDER BY r.created_at DESC",
+      ),
     ]);
     setProducts(pRs.rows as unknown as Product[]);
     setCategories(cRs.rows as unknown as Category[]);
+    setReviews(rRs.rows as unknown as Review[]);
     setOrders(
       (oRs.rows as unknown as Record<string, unknown>[]).map((r) => ({
         ...r,
@@ -198,6 +336,26 @@ export default function Admin() {
       setForm({ ...form, image_url: reader.result as string });
     };
     reader.readAsDataURL(file);
+  }
+
+  function handleExtraUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be under 2MB");
+      return;
+    }
+    const slot = extraSlotRef.current;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm((f) => {
+        const images = [...f.images];
+        images[slot] = reader.result as string;
+        return { ...f, images };
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
   }
 
   if (loading)
@@ -267,6 +425,7 @@ export default function Admin() {
       description: p.description,
       price: String(p.price),
       image_url: p.image_url,
+      images: parseImages(p.images),
       category: p.category,
       badge: p.badge ?? "",
       tag: p.tag ?? "",
@@ -287,15 +446,18 @@ export default function Admin() {
     e.preventDefault();
     setSaving(true);
     const price = parseFloat(form.price) || 0;
+    const extraImages = form.images.map((u) => u.trim()).filter(Boolean);
+    const imagesJson = extraImages.length ? JSON.stringify(extraImages) : null;
     try {
       if (editingId) {
         await turso.execute({
-          sql: "UPDATE products SET name=?, description=?, price=?, image_url=?, category=?, badge=?, tag=? WHERE id=?",
+          sql: "UPDATE products SET name=?, description=?, price=?, image_url=?, images=?, category=?, badge=?, tag=? WHERE id=?",
           args: [
             form.name,
             form.description,
             price,
             form.image_url,
+            imagesJson,
             form.category,
             form.badge || null,
             form.tag || null,
@@ -305,7 +467,7 @@ export default function Admin() {
         toast.success("Product updated");
       } else {
         await turso.execute({
-          sql: "INSERT INTO products (id, name, slug, description, price, image_url, category, badge, tag) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          sql: "INSERT INTO products (id, name, slug, description, price, image_url, images, category, badge, tag) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           args: [
             crypto.randomUUID(),
             form.name,
@@ -313,6 +475,7 @@ export default function Admin() {
             form.description,
             price,
             form.image_url,
+            imagesJson,
             form.category,
             form.badge || null,
             form.tag || null,
@@ -416,6 +579,231 @@ export default function Admin() {
     });
   }
 
+  async function setReviewStatus(reviewId: string, status: string) {
+    try {
+      await turso.execute({
+        sql: "UPDATE reviews SET status = ? WHERE id = ?",
+        args: [status, reviewId],
+      });
+      toast.success(status === "approved" ? "Review approved" : "Review rejected");
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error updating review");
+    }
+  }
+
+  async function deleteReview(id: string) {
+    setConfirm({
+      title: "Delete this review?",
+      message: "This review will be permanently removed.",
+      confirmLabel: "Delete",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          await turso.execute({ sql: "DELETE FROM reviews WHERE id = ?", args: [id] });
+          toast.success("Review deleted");
+          load();
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Error deleting review");
+        }
+      },
+    });
+  }
+
+  function handleReviewFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be under 2MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setReviewForm({ ...reviewForm, image_url: reader.result as string });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  async function submitReview(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingReview(true);
+    try {
+      await turso.execute({
+        sql: "INSERT INTO reviews (id, product_id, user_id, user_name, rating, title, body, image_url, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'approved')",
+        args: [
+          crypto.randomUUID(),
+          reviewForm.product_id,
+          null,
+          reviewForm.user_name.trim(),
+          reviewForm.rating,
+          reviewForm.title.trim() || null,
+          reviewForm.body.trim(),
+          reviewForm.image_url || null,
+        ],
+      });
+      toast.success("Review published");
+      setReviewForm(emptyReviewForm);
+      setShowReviewForm(false);
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error adding review");
+    } finally {
+      setSavingReview(false);
+    }
+  }
+
+  async function saveSettings(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      for (const [key, value] of Object.entries(settingsForm)) {
+        await turso.execute({
+          sql: "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+          args: [key, value],
+        });
+      }
+      await refreshSettings();
+      toast.success("Settings saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error saving settings");
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
+  async function changePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!passwordForm.next || passwordForm.next !== passwordForm.confirm) {
+      toast.error("New passwords don't match");
+      return;
+    }
+    if (passwordForm.next.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    setChangingPassword(true);
+    const adminEmail = user?.email ?? "";
+    try {
+      const rs = await turso.execute({
+        sql: "SELECT email FROM admins WHERE email = ? AND password = ?",
+        args: [adminEmail, passwordForm.current],
+      });
+      if (rs.rows.length === 0) {
+        toast.error("Current password is incorrect");
+        return;
+      }
+      await turso.execute({
+        sql: "UPDATE admins SET password = ? WHERE email = ?",
+        args: [passwordForm.next, adminEmail],
+      });
+      toast.success("Password updated");
+      setPasswordForm({ current: "", next: "", confirm: "" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error updating password");
+    } finally {
+      setChangingPassword(false);
+    }
+  }
+
+  async function exportData() {
+    setDataBusy(true);
+    try {
+      const [pRs, cRs, oRs, rRs] = await Promise.all([
+        turso.execute("SELECT * FROM products ORDER BY created_at DESC"),
+        turso.execute("SELECT * FROM categories ORDER BY name"),
+        turso.execute("SELECT * FROM orders ORDER BY created_at DESC"),
+        turso.execute("SELECT * FROM reviews ORDER BY created_at DESC"),
+      ]);
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        categories: cRs.rows,
+        products: pRs.rows,
+        orders: oRs.rows,
+        reviews: rRs.rows,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `store-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Backup downloaded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error exporting data");
+    } finally {
+      setDataBusy(false);
+    }
+  }
+
+  function confirmLoadSample() {
+    setConfirm({
+      title: "Load sample data?",
+      message: `This adds ${sampleCategories.length} sample categories and ${sampleProducts.length} sample products to your store. Your existing data is kept.`,
+      confirmLabel: "Load sample data",
+      variant: "default",
+      onConfirm: async () => {
+        setDataBusy(true);
+        try {
+          for (const c of sampleCategories) {
+            await turso.execute({
+              sql: "INSERT OR IGNORE INTO categories (id, name, slug) VALUES (?, ?, ?)",
+              args: [crypto.randomUUID(), c.name, c.slug],
+            });
+          }
+          for (const p of sampleProducts) {
+            await turso.execute({
+              sql: "INSERT INTO products (id, name, slug, description, price, image_url, category, badge, tag) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              args: [
+                crypto.randomUUID(),
+                p.name,
+                slugify(p.name) + "-" + Math.random().toString(36).slice(2, 6),
+                p.description,
+                p.price,
+                p.image_url,
+                p.category,
+                p.badge,
+                p.tag,
+              ],
+            });
+          }
+          toast.success(`Loaded ${sampleProducts.length} sample products`);
+          load();
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Error loading sample data");
+        } finally {
+          setDataBusy(false);
+        }
+      },
+    });
+  }
+
+  function confirmClearData() {
+    setConfirm({
+      title: "Clear all store data?",
+      message:
+        "This permanently deletes ALL products, categories, orders and reviews. Your settings are kept. This cannot be undone — export a backup first!",
+      confirmLabel: "Delete everything",
+      variant: "destructive",
+      onConfirm: async () => {
+        setDataBusy(true);
+        try {
+          await turso.execute("DELETE FROM products");
+          await turso.execute("DELETE FROM categories");
+          await turso.execute("DELETE FROM orders");
+          await turso.execute("DELETE FROM reviews");
+          toast.success("Store data cleared");
+          load();
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Error clearing data");
+        } finally {
+          setDataBusy(false);
+        }
+      },
+    });
+  }
+
   const filteredProducts = products.filter(
     (p) =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -433,7 +821,15 @@ export default function Admin() {
   const navItems: { key: Tab; label: string; icon: typeof Box; count: number }[] = [
     { key: "products", label: "Products", icon: Package, count: products.length },
     { key: "categories", label: "Categories", icon: Layers, count: categories.length },
+    {
+      key: "reviews",
+      label: "Reviews",
+      icon: Star,
+      count: reviews.filter((r) => r.status === "pending").length,
+    },
     { key: "orders", label: "Orders", icon: ShoppingCart, count: orders.length },
+    { key: "settings", label: "Settings", icon: Settings, count: 0 },
+    { key: "data", label: "Store Data", icon: Database, count: 0 },
   ];
 
   return (
@@ -480,15 +876,17 @@ export default function Admin() {
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 <span>{item.label}</span>
-                <span
-                  className={`ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                    tab === item.key
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-secondary text-muted-foreground"
-                  }`}
-                >
-                  {item.count}
-                </span>
+                {item.count > 0 && (
+                  <span
+                    className={`ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                      tab === item.key
+                        ? "bg-accent text-accent-foreground"
+                        : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    {item.count}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -1017,6 +1415,312 @@ export default function Admin() {
                 </div>
               </div>
             )}
+
+            {/* ───── REVIEWS TAB ───── */}
+            {tab === "reviews" && (
+              <div>
+                <div className="flex items-center justify-between mb-4 gap-3">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold tracking-tight text-foreground">Reviews</h2>
+                    <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+                      {reviews.length}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setReviewForm(emptyReviewForm);
+                      setShowReviewForm(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-accent px-5 h-10 text-sm font-semibold text-accent-foreground transition-transform hover:scale-105"
+                  >
+                    <Plus className="h-4 w-4" /> Add Review
+                  </button>
+                </div>
+
+                <div className="space-y-2.5">
+                  {reviews.length === 0 && (
+                    <div className="rounded-2xl border-2 border-dashed border-border bg-card/50 p-10 text-center">
+                      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-secondary">
+                        <Star className="h-6 w-6 text-muted-foreground/60" />
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-foreground">No reviews yet</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Reviews from customers will appear here for moderation.
+                      </p>
+                    </div>
+                  )}
+                  {reviews.map((r) => {
+                    const dateStr = new Date(r.created_at).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    });
+                    const initials =
+                      (r.user_name?.[0] ?? "?").toUpperCase() + (r.user_name?.[1] ?? "").toUpperCase();
+                    const statusPill: Record<string, string> = {
+                      pending: "bg-amber-50 text-amber-700 ring-amber-600/20",
+                      approved: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+                      rejected: "bg-red-50 text-red-700 ring-red-600/20",
+                    };
+                    return (
+                      <div
+                        key={r.id}
+                        className="flex flex-col gap-4 bg-card rounded-2xl border border-border p-4 sm:flex-row sm:items-start"
+                      >
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-secondary">
+                            {r.image_url ? (
+                              <img
+                                src={r.image_url}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="grid h-full w-full place-items-center text-xs font-bold text-muted-foreground">
+                                {initials}
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <span className="text-sm font-semibold text-foreground">
+                                {r.user_name}
+                              </span>
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                {r.status}
+                              </span>
+                            </div>
+                            <div className="mt-1 flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-3.5 w-3.5 ${i <= r.rating ? "fill-accent text-accent" : "text-border"}`}
+                                />
+                              ))}
+                              <span className="ml-1.5 text-[11px] text-muted-foreground">
+                                {dateStr}
+                              </span>
+                            </div>
+                            <p className="mt-1.5 text-xs text-muted-foreground truncate max-w-full">
+                              on <span className="font-medium text-foreground">{r.product_name}</span>
+                            </p>
+                            {r.title && (
+                              <p className="mt-2 text-sm font-semibold text-foreground">
+                                {r.title}
+                              </p>
+                            )}
+                            <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                              {r.body}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1.5 sm:flex-col sm:items-end">
+                          {r.status === "pending" && (
+                            <>
+                              <button
+                                onClick={() => setReviewStatus(r.id, "approved")}
+                                className="inline-flex h-9 items-center gap-1 rounded-full bg-emerald-50 px-4 text-xs font-medium text-emerald-600 hover:bg-emerald-100 transition-colors"
+                              >
+                                <Check className="h-3.5 w-3.5" /> Approve
+                              </button>
+                              <button
+                                onClick={() => setReviewStatus(r.id, "rejected")}
+                                className="inline-flex h-9 items-center gap-1 rounded-full bg-red-50 px-4 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors"
+                              >
+                                <X className="h-3.5 w-3.5" /> Reject
+                              </button>
+                            </>
+                          )}
+                          {r.status !== "pending" && (
+                            <button
+                              onClick={() => setReviewStatus(r.id, "pending")}
+                              className="inline-flex h-9 items-center gap-1 rounded-full bg-muted px-4 text-xs font-medium text-muted-foreground hover:bg-secondary transition-colors"
+                            >
+                              Unpublish
+                            </button>
+                          )}
+                          <button
+                            onClick={() => deleteReview(r.id)}
+                            className="grid h-9 w-9 place-items-center rounded-full hover:bg-red-50 transition-colors"
+                            aria-label="Delete review"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-400" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ───── SETTINGS TAB ───── */}
+            {tab === "settings" && (
+              <div className="max-w-2xl space-y-6 pb-6">
+                <form onSubmit={saveSettings} className="space-y-6">
+                  {settingsGroups.map((group) => (
+                    <section
+                      key={group.title}
+                      className="rounded-2xl border border-border bg-card p-6 shadow-sm"
+                    >
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                        {group.title}
+                      </h3>
+                      <div className="mt-4 space-y-4">
+                        {group.fields.map((key) => (
+                          <div key={key} className="space-y-1.5">
+                            <label className="text-xs font-medium text-foreground">
+                              {settingsLabels[key]}
+                            </label>
+                            {settingsTextareas.has(key) ? (
+                              <textarea
+                                rows={key === "hero_title" ? 2 : 3}
+                                value={settingsForm[key]}
+                                onChange={(e) =>
+                                  setSettingsForm((f) => ({ ...f, [key]: e.target.value }))
+                                }
+                                className="w-full rounded-2xl border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/25 resize-none"
+                              />
+                            ) : (
+                              <input
+                                value={settingsForm[key]}
+                                onChange={(e) =>
+                                  setSettingsForm((f) => ({ ...f, [key]: e.target.value }))
+                                }
+                                className={inputClass}
+                              />
+                            )}
+                            {key === "hero_title" && (
+                              <p className="text-[11px] text-muted-foreground">
+                                Put each line of your headline on its own row.
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                  <button
+                    disabled={savingSettings}
+                    className="inline-flex h-11 items-center gap-2 rounded-full bg-accent px-7 text-sm font-semibold text-accent-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {savingSettings ? (
+                      <span className="flex items-center gap-2">
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent-foreground/30 border-t-accent-foreground" />
+                        Saving…
+                      </span>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" /> Save Settings
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                    Change admin password
+                  </h3>
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    You'll need your current password to make this change.
+                  </p>
+                  <form onSubmit={changePassword} className="mt-4 space-y-3">
+                    <input
+                      type="password"
+                      required
+                      placeholder="Current password"
+                      value={passwordForm.current}
+                      onChange={(e) =>
+                        setPasswordForm({ ...passwordForm, current: e.target.value })
+                      }
+                      className={inputClass}
+                    />
+                    <input
+                      type="password"
+                      required
+                      placeholder="New password"
+                      value={passwordForm.next}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, next: e.target.value })}
+                      className={inputClass}
+                    />
+                    <input
+                      type="password"
+                      required
+                      placeholder="Confirm new password"
+                      value={passwordForm.confirm}
+                      onChange={(e) =>
+                        setPasswordForm({ ...passwordForm, confirm: e.target.value })
+                      }
+                      className={inputClass}
+                    />
+                    <button
+                      disabled={changingPassword}
+                      className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-background px-5 text-sm font-semibold text-foreground transition-all hover:bg-secondary active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                      {changingPassword ? "Updating…" : "Update password"}
+                    </button>
+                  </form>
+                </section>
+              </div>
+            )}
+
+            {/* ───── DATA TAB ───── */}
+            {tab === "data" && (
+              <div className="max-w-2xl space-y-6 pb-6">
+                <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                    Backup your store
+                  </h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    Download all products, categories, orders and reviews as a JSON file. Keep a
+                    copy before clearing or changing your data.
+                  </p>
+                  <button
+                    onClick={exportData}
+                    disabled={dataBusy}
+                    className="mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-accent-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    <Download className="h-4 w-4" />
+                    {dataBusy ? "Exporting…" : "Download backup"}
+                  </button>
+                </section>
+
+                <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                    Load sample data
+                  </h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    Add {sampleCategories.length} sample categories and {sampleProducts.length}{" "}
+                    sample products to preview the store. Your existing data is kept.
+                  </p>
+                  <button
+                    onClick={confirmLoadSample}
+                    disabled={dataBusy}
+                    className="mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-accent-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    <UploadCloud className="h-4 w-4" /> Load sample data
+                  </button>
+                </section>
+
+                <section className="rounded-2xl border border-red-200 bg-red-50/50 p-6">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-red-600">
+                    Danger zone
+                  </h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    Permanently delete every product, category, order and review in your store.
+                    Your settings are kept. This cannot be undone.
+                  </p>
+                  <button
+                    onClick={confirmClearData}
+                    disabled={dataBusy}
+                    className="mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-red-500 px-5 text-sm font-semibold text-white transition-all hover:bg-red-600 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" /> Clear all store data
+                  </button>
+                </section>
+              </div>
+            )}
           </div>
         </main>
 
@@ -1223,6 +1927,74 @@ export default function Admin() {
                     onChange={(e) => setForm({ ...form, image_url: e.target.value })}
                     className={inputClass}
                   />
+
+                  {/* Additional images */}
+                  <div className="mt-5">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                      Additional Images (optional)
+                    </p>
+                    <div className="space-y-3">
+                      {form.images.map((img, i) => (
+                        <div key={i} className="flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              extraSlotRef.current = i;
+                              extraFileRef.current?.click();
+                            }}
+                            className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-background transition-colors hover:bg-secondary"
+                            aria-label={`Upload additional image ${i + 1}`}
+                          >
+                            {img ? (
+                              <img
+                                src={img}
+                                alt={`Additional image ${i + 1}`}
+                                className="h-full w-full rounded-xl object-cover"
+                              />
+                            ) : (
+                              <Upload className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </button>
+                          <input
+                            type="url"
+                            placeholder={`Additional image ${i + 1} URL…`}
+                            value={img}
+                            onChange={(e) =>
+                              setForm((f) => {
+                                const images = [...f.images];
+                                images[i] = e.target.value;
+                                return { ...f, images };
+                              })
+                            }
+                            className={inputClass}
+                          />
+                          {img && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setForm((f) => {
+                                  const images = [...f.images];
+                                  images[i] = "";
+                                  return { ...f, images };
+                                })
+                              }
+                              className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500"
+                              aria-label="Remove image"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <input
+                      ref={extraFileRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleExtraUpload}
+                      className="hidden"
+                    />
+                  </div>
                 </div>
 
                 {/* Extras */}
@@ -1268,6 +2040,156 @@ export default function Admin() {
                   ) : (
                     <>
                       <Plus className="h-4 w-4" /> Add Product
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ───── ADD REVIEW MODAL ───── */}
+        {showReviewForm && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12">
+            <div
+              className="fixed inset-0 bg-foreground/40 backdrop-blur-sm"
+              onClick={() => setShowReviewForm(false)}
+            />
+            <div className="relative bg-card shadow-xl shadow-foreground/10 w-full max-w-lg mx-4 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border border-border">
+              <div className="flex items-center justify-between px-6 pt-5 pb-0">
+                <h2 className="text-lg font-bold tracking-tight text-foreground">Add Review</h2>
+                <button
+                  onClick={() => setShowReviewForm(false)}
+                  className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-[0.98] transition-all"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <form onSubmit={submitReview} className="px-6 pt-5 pb-6 space-y-5">
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">Product</label>
+                    <select
+                      required
+                      value={reviewForm.product_id}
+                      onChange={(e) => setReviewForm({ ...reviewForm, product_id: e.target.value })}
+                      className={inputClass}
+                    >
+                      <option value="" disabled>
+                        Select a product…
+                      </option>
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">Reviewer name</label>
+                    <input
+                      required
+                      placeholder="e.g. PetPals Team"
+                      value={reviewForm.user_name}
+                      onChange={(e) => setReviewForm({ ...reviewForm, user_name: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">Rating</label>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setReviewForm({ ...reviewForm, rating: i })}
+                          className="p-1 transition-transform hover:scale-110"
+                          aria-label={`Rate ${i} out of 5 stars`}
+                        >
+                          <Star
+                            className={`h-7 w-7 ${i <= reviewForm.rating ? "fill-accent text-accent" : "text-border"}`}
+                          />
+                        </button>
+                      ))}
+                      <span className="ml-2 text-sm text-muted-foreground">
+                        {reviewForm.rating}/5
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">Title (optional)</label>
+                    <input
+                      placeholder="e.g. Perfect for my puppy"
+                      value={reviewForm.title}
+                      onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">Review</label>
+                    <textarea
+                      required
+                      placeholder="Share your experience…"
+                      value={reviewForm.body}
+                      onChange={(e) => setReviewForm({ ...reviewForm, body: e.target.value })}
+                      rows={4}
+                      className="w-full rounded-2xl border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/25 resize-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">
+                      Photo (optional)
+                    </label>
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => reviewFileRef.current?.click()}
+                        className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-background transition-colors hover:bg-secondary"
+                        aria-label="Upload review photo"
+                      >
+                        {reviewForm.image_url ? (
+                          <img
+                            src={reviewForm.image_url}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <Upload className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
+                      <input
+                        type="url"
+                        placeholder="Paste image URL…"
+                        value={reviewForm.image_url}
+                        onChange={(e) =>
+                          setReviewForm({ ...reviewForm, image_url: e.target.value })
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                    <input
+                      ref={reviewFileRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleReviewFileUpload}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  disabled={savingReview}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-accent font-semibold text-accent-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {savingReview ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent-foreground/30 border-t-accent-foreground" />
+                      Publishing…
+                    </span>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" /> Publish Review
                     </>
                   )}
                 </button>

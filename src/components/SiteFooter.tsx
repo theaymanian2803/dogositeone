@@ -1,8 +1,36 @@
+import { Link } from "react-router-dom";
+import { useSettings } from "@/hooks/useSettings";
+
 export function SiteFooter() {
-  const cols = [
-    { title: "Shop", links: ["Dogs", "Cats", "Brands", "New Arrivals"] },
-    { title: "Help", links: ["Contact", "Shipping", "Returns", "FAQ"] },
-    { title: "Company", links: ["About", "Careers", "Press", "Sustainability"] },
+  const { settings } = useSettings();
+  const cols: { title: string; links: { label: string; to: string }[] }[] = [
+    {
+      title: "Shop",
+      links: [
+        { label: "Dogs", to: "/category/dogs" },
+        { label: "Cats", to: "/category/cats" },
+        { label: "Brands", to: "/shop" },
+        { label: "New Arrivals", to: "/shop" },
+      ],
+    },
+    {
+      title: "Help",
+      links: [
+        { label: "Contact", to: "/contact" },
+        { label: "Shipping", to: "/shipping" },
+        { label: "Returns", to: "/returns" },
+        { label: "FAQ", to: "/faq" },
+      ],
+    },
+    {
+      title: "Company",
+      links: [
+        { label: "About", to: "/about" },
+        { label: "Careers", to: "/careers" },
+        { label: "Press", to: "/press" },
+        { label: "Sustainability", to: "/sustainability" },
+      ],
+    },
   ];
   return (
     <footer className="border-t border-border bg-secondary/40">
@@ -12,10 +40,10 @@ export function SiteFooter() {
             <span className="grid h-9 w-9 place-items-center rounded-full bg-accent text-white">
               🐾
             </span>
-            PetPals
+            {settings.brand_name}
           </div>
           <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-            Everything your furry friend needs, delivered with love to your door.
+            {settings.tagline}
           </p>
         </div>
         {cols.map((c) => (
@@ -23,10 +51,10 @@ export function SiteFooter() {
             <h4 className="text-sm font-bold uppercase tracking-wider">{c.title}</h4>
             <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
               {c.links.map((l) => (
-                <li key={l}>
-                  <a href="#" className="hover:text-accent">
-                    {l}
-                  </a>
+                <li key={l.label}>
+                  <Link to={l.to} className="transition-colors hover:text-accent">
+                    {l.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -34,7 +62,7 @@ export function SiteFooter() {
         ))}
       </div>
       <div className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} PetPals. Made with love for pets everywhere.
+        © {new Date().getFullYear()} {settings.brand_name}. Made with love for pets everywhere.
       </div>
     </footer>
   );

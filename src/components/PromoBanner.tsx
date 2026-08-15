@@ -2,8 +2,10 @@ import { Link } from "react-router-dom";
 import promo from "@/assets/promo-pets.jpg";
 import food from "@/assets/product-food.jpg";
 import { Star } from "lucide-react";
+import { useSettings } from "@/hooks/useSettings";
 
 export function PromoBanner() {
+  const { settings } = useSettings();
   return (
     <section className="relative overflow-hidden bg-promo">
       <img
@@ -26,15 +28,15 @@ export function PromoBanner() {
             />
           </div>
           <div>
-            <h3 className="text-2xl font-bold md:text-3xl">Chicken Flavor Food</h3>
+            <h3 className="text-2xl font-bold md:text-3xl">{settings.promo_title}</h3>
             <div className="mt-2 flex gap-0.5 text-accent">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="h-4 w-4 fill-current" />
               ))}
             </div>
             <p className="mt-3">
-              <span className="text-sm text-muted-foreground line-through">$60</span>
-              <span className="ml-2 text-2xl font-bold">$40 Only</span>
+              <span className="text-sm text-muted-foreground line-through">{settings.promo_old_price}</span>
+              <span className="ml-2 text-2xl font-bold">{settings.promo_price} Only</span>
             </p>
             <Link to="/category/foods" className="btn-dark mt-5 inline-flex">
               Shop Food

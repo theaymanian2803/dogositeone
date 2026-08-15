@@ -30,6 +30,30 @@ async function seed() {
     )
   `);
 
+  console.log("Ensuring reviews table exists...");
+  await turso.execute(`
+    CREATE TABLE IF NOT EXISTS reviews (
+      id         TEXT PRIMARY KEY,
+      product_id TEXT NOT NULL,
+      user_id    TEXT,
+      user_name  TEXT NOT NULL,
+      rating     INTEGER NOT NULL,
+      title      TEXT,
+      body       TEXT NOT NULL,
+      image_url  TEXT,
+      status     TEXT NOT NULL DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  console.log("Ensuring settings table exists...");
+  await turso.execute(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT
+    )
+  `);
+
   const adminEmail = "sberechou@gmail.com";
   const adminPassword = "admin123";
 

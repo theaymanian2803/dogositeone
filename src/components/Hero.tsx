@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import heroPets from "@/assets/hero-pets.jpg";
+import { useSettings } from "@/hooks/useSettings";
 
 export function Hero() {
+  const { settings } = useSettings();
   return (
     <section className="relative overflow-hidden bg-hero">
       <div className="mx-auto grid max-w-7xl items-center gap-8 px-6 py-12 md:grid-cols-2 md:py-20">
@@ -18,17 +20,18 @@ export function Hero() {
 
         <div className="order-1 md:order-2 md:pl-6">
           <p className="text-xl font-semibold text-accent md:text-2xl">
-            Get 40% Off On Your First Order
+            {settings.hero_badge}
           </p>
           <h1 className="mt-3 text-5xl leading-tight md:text-6xl">
-            Puppy And Cat
-            <br />
-            Food
+            {settings.hero_title.split("\n").map((line) => (
+              <span key={line} className="block">
+                {line}
+              </span>
+            ))}
           </h1>
           <div className="squiggle mt-5" />
           <p className="mt-6 max-w-md text-sm leading-relaxed text-muted-foreground">
-            Premium nutrition crafted for your best friends. Wholesome ingredients, irresistible
-            flavor, and tail-wagging happiness in every bowl.
+            {settings.hero_subtitle}
           </p>
           <Link to="/shop" className="btn-dark mt-8 inline-flex">
             Shop Now

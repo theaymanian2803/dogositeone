@@ -18,6 +18,7 @@ import {
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { useUserAuth } from "@/hooks/useUserAuth";
+import { useSettings } from "@/hooks/useSettings";
 import { turso } from "@/integrations/turso/client";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -48,6 +49,7 @@ const categoryIcons: Record<string, typeof Dog> = {
 export function SiteHeader() {
   const { count } = useCart();
   const { user } = useUserAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [search, setSearch] = useState("");
@@ -179,7 +181,7 @@ export function SiteHeader() {
             <div className="flex h-full flex-col">
               <div className="flex items-center gap-2 border-b border-border px-6 py-4">
                 <PawPrint className="h-6 w-6 text-accent" />
-                <span className="text-lg font-bold">PetPals</span>
+                <span className="text-lg font-bold">{settings.brand_name}</span>
               </div>
               <nav className="flex-1 overflow-y-auto py-4">
                 <div className="space-y-1 px-3">
@@ -282,7 +284,7 @@ export function SiteHeader() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-1.5 shrink-0">
           <PawPrint className="h-7 w-7 text-accent sm:h-8 sm:w-8" />
-          <span className="text-lg font-bold tracking-tight sm:text-xl">PetPals</span>
+          <span className="text-lg font-bold tracking-tight sm:text-xl">{settings.brand_name}</span>
         </Link>
 
         {/* Desktop nav */}
