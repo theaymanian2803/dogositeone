@@ -93,9 +93,9 @@ export const TursoSettingsDialog = ({ open, onOpenChange }: TursoSettingsDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg sm:rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 pr-8">
             <Database className="h-4 w-4 text-accent" />
             Database Settings
           </DialogTitle>
@@ -105,7 +105,7 @@ export const TursoSettingsDialog = ({ open, onOpenChange }: TursoSettingsDialogP
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-1">
+        <div className="space-y-4">
           <div className="flex items-center gap-2 rounded-2xl border border-border bg-muted/50 px-3 py-2 font-mono text-xs text-muted-foreground">
             <span
               className={`h-2 w-2 rounded-full ${usingCustom ? "bg-emerald-400" : "bg-amber-400"}`}
@@ -140,16 +140,6 @@ export const TursoSettingsDialog = ({ open, onOpenChange }: TursoSettingsDialogP
             />
           </div>
 
-          <a
-            href="https://turso.tech"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-accent hover:underline"
-          >
-            <PlugZap className="h-3.5 w-3.5" />
-            Don't have a database? Create a free one at turso.tech
-          </a>
-
           {status === "testing" && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -170,21 +160,32 @@ export const TursoSettingsDialog = ({ open, onOpenChange }: TursoSettingsDialogP
           )}
         </div>
 
-        <DialogFooter className="gap-2">
-          {usingCustom && (
-            <Button variant="outline" onClick={handleReset} className="gap-2">
-              <RotateCcw className="h-4 w-4" />
-              Reset to demo
-            </Button>
-          )}
-          <Button onClick={handleSave} disabled={status === "testing"} className="gap-2">
-            {status === "testing" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
+        <DialogFooter className="gap-3 sm:justify-between">
+          <a
+            href="https://turso.tech"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1.5 text-xs text-accent hover:underline sm:justify-start"
+          >
+            <PlugZap className="h-3.5 w-3.5" />
+            Don't have a database? Create a free one at turso.tech
+          </a>
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
+            {usingCustom && (
+              <Button variant="outline" onClick={handleReset} className="gap-2">
+                <RotateCcw className="h-4 w-4" />
+                Reset to demo
+              </Button>
             )}
-            Save &amp; Connect
-          </Button>
+            <Button onClick={handleSave} disabled={status === "testing"} className="gap-2">
+              {status === "testing" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Save &amp; Connect
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
