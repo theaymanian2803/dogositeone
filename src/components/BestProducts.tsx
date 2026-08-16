@@ -7,14 +7,14 @@ import groom from "@/assets/product-groom.jpg";
 const items = [
   {
     name: "Chicken Flavoured Biscuit",
-    price: "$8.00",
+    price: "80.00 MAD",
     img: biscuit,
     badge: "-46%",
     to: "/category/foods",
   },
-  { name: "Ultra Soft Puppy Bed", price: "$15.50", img: bed, to: "/category/bed" },
-  { name: "Sea Fish Dry Cat Food", price: "$12.00", img: food, to: "/category/foods" },
-  { name: "Soft Pined Pet's Grooming Brush", price: "$12.00", img: groom, to: "/category/groom" },
+  { name: "Ultra Soft Puppy Bed", price: "155.00 MAD", img: bed, to: "/category/bed" },
+  { name: "Sea Fish Dry Cat Food", price: "120.00 MAD", img: food, to: "/category/foods" },
+  { name: "Soft Pined Pet's Grooming Brush", price: "120.00 MAD", img: groom, to: "/category/groom" },
 ];
 
 export function BestProducts() {

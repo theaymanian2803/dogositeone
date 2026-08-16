@@ -26,7 +26,8 @@ export default function Auth() {
         await signUp(email, password);
         toast.success("Account created");
       }
-      navigate("/admin");
+      const next = new URLSearchParams(window.location.search).get("next");
+      navigate(next && next.startsWith("/") ? next : "/admin");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {

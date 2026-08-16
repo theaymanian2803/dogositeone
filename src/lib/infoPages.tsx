@@ -64,7 +64,7 @@ export const infoPages: InfoPage[] = [
         list: [
           "We only carry products we'd give our own pets.",
           "We work with vets and nutritionists to curate our range.",
-          "Free shipping on every order over $50.",
+          "Free shipping on every order over 500 MAD.",
           "30-day no-questions returns on all items.",
         ],
       },
@@ -112,7 +112,7 @@ export const infoPages: InfoPage[] = [
     eyebrow: "Delivery details",
     title: "Shipping",
     subtitle:
-      "Fast, friendly, and free on orders over $50. Here's everything you need to know about how your pet's goodies get to your door.",
+      "Fast, friendly, and free on orders over 500 MAD. Here's everything you need to know about how your pet's goodies get to your door.",
     icon: Truck,
     sections: [
       {
@@ -122,9 +122,9 @@ export const infoPages: InfoPage[] = [
           "We ship from our Portland warehouse to all 50 states, with carbon-neutral delivery on every order.",
         ],
         list: [
-          "Standard (3–5 business days) — free on orders over $50, otherwise $4.99.",
-          "Express (1–2 business days) — $12.99.",
-          "Same-day (selected cities) — $15.99, order before 12pm local time.",
+          "Standard (3–5 business days) — free on orders over 500 MAD, otherwise 49.90 MAD.",
+          "Express (1–2 business days) — 129 MAD.",
+          "Same-day (selected cities) — 159 MAD, order before 12pm local time.",
         ],
       },
       {

@@ -1,11 +1,11 @@
-import { useEffect } from "react";
-import { SiteHeader } from "@/components/SiteHeader";
-import { Hero } from "@/components/Hero";
-import { Categories } from "@/components/Categories";
-import { ProductGrid } from "@/components/ProductGrid";
 import { BestProducts } from "@/components/BestProducts";
+import { Categories } from "@/components/Categories";
+import { Hero } from "@/components/Hero";
+import { ProductGrid } from "@/components/ProductGrid";
 import { PromoBanner } from "@/components/PromoBanner";
 import { SiteFooter } from "@/components/SiteFooter";
+import { SiteHeader } from "@/components/SiteHeader";
+import { useEffect } from "react";
 
 export default function Index() {
   useEffect(() => {
@@ -18,8 +18,8 @@ export default function Index() {
         <Hero />
         <Categories />
         <ProductGrid />
-        <BestProducts />
         <PromoBanner />
+        <BestProducts />
       </main>
       <SiteFooter />
     </div>

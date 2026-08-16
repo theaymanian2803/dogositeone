@@ -4,6 +4,7 @@ import { useUserAuth } from "@/hooks/useUserAuth";
 import { turso } from "@/integrations/turso/client";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { formatPrice } from "@/lib/currency";
 import { Package, User, Mail, LogOut, Phone, Hash, ChevronRight, Search } from "lucide-react";
 
 type OrderItem = { name: string; qty: number; price: number; image_url?: string };
@@ -178,7 +179,7 @@ export default function Account() {
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-base font-bold text-foreground">${Number(o.total).toFixed(2)}</p>
+                          <p className="text-base font-bold text-foreground">{formatPrice(o.total)}</p>
                           <span className={`inline-block mt-1.5 px-2.5 py-0.5 text-[11px] font-semibold capitalize ${statusColor[o.status] || "bg-slate-100 text-slate-700"}`}>
                             {o.status}
                           </span>
@@ -196,7 +197,7 @@ export default function Account() {
                               <li key={idx} className="flex items-center gap-2 text-xs">
                                 <span className="flex-1 truncate text-foreground">{it.name}</span>
                                 <span className="text-muted-foreground shrink-0">×{it.qty}</span>
-                                <span className="font-medium text-foreground shrink-0 w-14 text-right">${(it.qty * it.price).toFixed(2)}</span>
+                                <span className="font-medium text-foreground shrink-0 w-14 text-right">{formatPrice(it.qty * it.price)}</span>
                               </li>
                             ))}
                           </ul>

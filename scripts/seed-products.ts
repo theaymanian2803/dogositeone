@@ -79,7 +79,7 @@ async function seed() {
         p.tag,
       ],
     });
-    console.log(`  ✓ ${p.name} — $${p.price.toFixed(2)} [${p.category}]`);
+    console.log(`  ✓ ${p.name} — ${p.price.toFixed(2)} MAD [${p.category}]`);
   }
 
   console.log(`\nDone — ${categories.length} categories, ${products.length} products inserted.`);

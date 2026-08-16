@@ -4,13 +4,16 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { useCart } from "@/hooks/useCart";
 import { useUserAuth } from "@/hooks/useUserAuth";
+import { useSettings } from "@/hooks/useSettings";
 import { turso } from "@/integrations/turso/client";
 import { toast } from "sonner";
-import { Package, User, ArrowRight } from "lucide-react";
+import { formatPrice } from "@/lib/currency";
+import { Package, User, ArrowRight, MessageCircle } from "lucide-react";
 
 export default function Checkout() {
   const { items, subtotal, clear } = useCart();
   const { user, loading } = useUserAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const [placing, setPlacing] = useState(false);
   const [guestCheckout, setGuestCheckout] = useState(() => {
@@ -26,7 +29,7 @@ export default function Checkout() {
     phone: "",
     address: "",
   });
-  const shipping = subtotal > 50 || subtotal === 0 ? 0 : 5;
+  const shipping = subtotal > 500 || subtotal === 0 ? 0 : 50;
   const total = subtotal + shipping;
 
   useEffect(() => {
@@ -73,7 +76,7 @@ export default function Checkout() {
               <p className="text-muted-foreground">× {i.qty}</p>
             </div>
             <span className="text-sm font-medium text-foreground shrink-0">
-              ${(i.qty * Number(i.price)).toFixed(2)}
+              {formatPrice(i.qty * Number(i.price))}
             </span>
           </li>
         ))}
@@ -81,7 +84,7 @@ export default function Checkout() {
       <dl className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
         <div className="flex justify-between text-muted-foreground">
           <dt>Subtotal</dt>
-          <dd>${subtotal.toFixed(2)}</dd>
+          <dd>{formatPrice(subtotal)}</dd>
         </div>
         <div className="flex justify-between text-muted-foreground">
           <dt>Shipping</dt>
@@ -89,13 +92,13 @@ export default function Checkout() {
             {shipping === 0 ? (
               <span className="text-emerald-600">Free</span>
             ) : (
-              `$${shipping.toFixed(2)}`
+              formatPrice(shipping)
             )}
           </dd>
         </div>
         <div className="flex justify-between border-t border-border pt-2 text-base font-semibold text-foreground">
           <dt>Total</dt>
-          <dd>${total.toFixed(2)}</dd>
+          <dd>{formatPrice(total)}</dd>
         </div>
       </dl>
     </>
@@ -144,6 +147,40 @@ export default function Checkout() {
     } finally {
       setPlacing(false);
     }
+  };
+
+  const orderViaWhatsApp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (items.length === 0) return;
+    const lines = [
+      "🐾 *New Order Request — PetPals*",
+      "",
+      `👤 *Name:* ${form.first_name.trim()} ${form.last_name.trim()}`,
+      `📞 *Phone:* ${form.phone.trim()}`,
+      `📍 *Address:* ${form.address.trim()}`,
+      "",
+      "*Items:*",
+      ...items.map((i) => `• ${i.name} ×${i.qty} — ${formatPrice(i.qty * Number(i.price))}`),
+      "",
+      `*Shipping:* ${shipping === 0 ? "Free" : formatPrice(shipping)}`,
+      `*Total:* ${formatPrice(total)}`,
+      `*Payment:* Cash on Delivery`,
+      "",
+      "Our team will get back to you as soon as possible to confirm your order.",
+    ];
+    const number = settings.whatsapp_number.replace(/[^0-9]/g, "");
+    if (!number) {
+      toast.error("WhatsApp number is not configured");
+      return;
+    }
+    const waNumber = number.startsWith("0")
+      ? `212${number.replace(/^0/, "")}`
+      : number;
+    window.open(
+      `https://wa.me/${waNumber}?text=${encodeURIComponent(lines.join("\n"))}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   };
 
   return (
@@ -298,6 +335,16 @@ export default function Checkout() {
                 >
                   {placing ? "Placing order…" : "Place order"}
                 </button>
+                <button
+                  type="button"
+                  onClick={orderViaWhatsApp}
+                  className="mt-2 flex w-full items-center justify-center gap-2 border border-emerald-600 bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-all active:scale-[0.98]"
+                >
+                  <MessageCircle className="h-4 w-4" /> Order via WhatsApp
+                </button>
+                <p className="mt-3 text-center text-xs text-muted-foreground">
+                  Pay on delivery. Our team will call to confirm your order.
+                </p>
               </div>
             </aside>
           </form>

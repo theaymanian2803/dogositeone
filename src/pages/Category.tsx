@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
+import { formatPrice } from "@/lib/currency";
 import { ShoppingBag } from "lucide-react";
 
 type Product = {
@@ -94,7 +95,7 @@ export default function Category() {
                   <div className="mt-4 text-center">
                     <h3 className="text-sm font-semibold">{p.name}</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      ${Number(p.price).toFixed(2)}
+                      {formatPrice(p.price)}
                     </p>
                     {p.tag && (
                       <span className="mt-2 inline-block rounded-full border border-border px-3 py-0.5 text-xs">

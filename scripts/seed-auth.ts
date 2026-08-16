@@ -54,7 +54,7 @@ async function seed() {
     )
   `);
 
-  const adminEmail = "sberechou@gmail.com";
+  const adminEmail = "admin@gmail.com";
   const adminPassword = "admin123";
 
   const existing = await turso.execute({

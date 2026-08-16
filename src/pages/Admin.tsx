@@ -2,8 +2,11 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
 import { useSettings, type Settings as StoreSettings } from "@/hooks/useSettings";
 import { sampleCategories, sampleProducts } from "@/lib/sampleData";
-import { turso } from "@/integrations/turso/client";
+import { turso, resetTursoClient } from "@/integrations/turso/client";
 import { ADMIN_EMAIL } from "@/lib/admin";
+import { formatPrice } from "@/lib/currency";
+import { clearTursoConfig, isUsingCustomConfig } from "@/lib/tursoConfig";
+import { TursoSettingsDialog } from "@/components/TursoSettingsDialog";
 import {
   Box,
   Check,
@@ -24,6 +27,7 @@ import {
   Pencil,
   Phone,
   Plus,
+  RotateCcw,
   Save,
   Search,
   Settings,
@@ -129,6 +133,7 @@ const settingsLabels: Record<keyof StoreSettings, string> = {
   promo_price: "Promo price",
   contact_email: "Contact email",
   contact_phone: "Contact phone",
+  whatsapp_number: "WhatsApp number",
   contact_address: "Contact address",
   support_hours: "Support hours",
 };
@@ -137,11 +142,24 @@ const settingsGroups: { title: string; fields: (keyof StoreSettings)[] }[] = [
   { title: "Store & Brand", fields: ["brand_name", "tagline"] },
   {
     title: "Homepage",
-    fields: ["hero_badge", "hero_title", "hero_subtitle", "promo_title", "promo_old_price", "promo_price"],
+    fields: [
+      "hero_badge",
+      "hero_title",
+      "hero_subtitle",
+      "promo_title",
+      "promo_old_price",
+      "promo_price",
+    ],
   },
   {
     title: "Contact info",
-    fields: ["contact_email", "contact_phone", "contact_address", "support_hours"],
+    fields: [
+      "contact_email",
+      "contact_phone",
+      "whatsapp_number",
+      "contact_address",
+      "support_hours",
+    ],
   },
 ];
 
@@ -196,7 +214,16 @@ export default function Admin() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isCompactOrders = useIsMobile(1280);
-  const [tab, setTab] = useState<Tab>("orders");
+  const initialTab = (() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return (["products", "categories", "orders", "reviews", "settings", "data"] as Tab[]).includes(
+      t as Tab,
+    )
+      ? (t as Tab)
+      : "orders";
+  })();
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const [tursoOpen, setTursoOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState(emptyForm);
@@ -225,6 +252,7 @@ export default function Admin() {
   const [dataBusy, setDataBusy] = useState(false);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
+  const usingCustom = isUsingCustomConfig();
 
   useEffect(() => {
     setSettingsForm(settings);
@@ -379,7 +407,7 @@ export default function Admin() {
             You need to sign in as an admin to manage PetPals.
           </p>
           <Link
-            to="/auth"
+            to={`/auth?next=${encodeURIComponent(window.location.pathname + window.location.search)}`}
             className="mt-5 inline-flex items-center justify-center rounded-full bg-accent px-8 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-105"
           >
             Sign in
@@ -952,7 +980,7 @@ export default function Admin() {
                 { label: "Pending Orders", value: pendingOrders, icon: ShoppingCart },
                 {
                   label: "Revenue",
-                  value: `$${totalRevenue.toFixed(0)}`,
+                  value: formatPrice(totalRevenue),
                   icon: DollarSign,
                   accent: true,
                 },
@@ -1028,7 +1056,7 @@ export default function Admin() {
                               </div>
                               <div className="text-right shrink-0">
                                 <div className="text-base font-bold tracking-tight text-foreground">
-                                  ${Number(o.total).toFixed(2)}
+                                  {formatPrice(o.total)}
                                 </div>
                                 <span
                                   className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
@@ -1064,7 +1092,7 @@ export default function Admin() {
                                     ×{it.qty}
                                   </span>
                                   <span className="text-xs font-medium text-foreground shrink-0 w-14 text-right">
-                                    ${(it.qty * it.price).toFixed(2)}
+                                    {formatPrice(it.qty * it.price)}
                                   </span>
                                 </div>
                               ))}
@@ -1193,7 +1221,7 @@ export default function Admin() {
                                       ×{it.qty}
                                     </span>
                                     <span className="text-[11px] font-medium text-foreground w-14 text-right shrink-0">
-                                      ${(it.qty * it.price).toFixed(2)}
+                                      {formatPrice(it.qty * it.price)}
                                     </span>
                                   </div>
                                 ))}
@@ -1202,7 +1230,7 @@ export default function Admin() {
                               {/* Col 5: Total */}
                               <div className="min-w-0 pt-1">
                                 <div className="text-base font-bold tracking-tight text-foreground">
-                                  ${Number(o.total).toFixed(2)}
+                                  {formatPrice(o.total)}
                                 </div>
                                 <div className="text-[10px] text-muted-foreground mt-0.5">
                                   Tax incl.
@@ -1329,7 +1357,7 @@ export default function Admin() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          ${Number(p.price).toFixed(2)} · {p.category}
+                          {formatPrice(p.price)} · {p.category}
                         </p>
                         {p.badge && (
                           <span className="mt-1.5 inline-block rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent">
@@ -1456,7 +1484,8 @@ export default function Admin() {
                       day: "numeric",
                     });
                     const initials =
-                      (r.user_name?.[0] ?? "?").toUpperCase() + (r.user_name?.[1] ?? "").toUpperCase();
+                      (r.user_name?.[0] ?? "?").toUpperCase() +
+                      (r.user_name?.[1] ?? "").toUpperCase();
                     const statusPill: Record<string, string> = {
                       pending: "bg-amber-50 text-amber-700 ring-amber-600/20",
                       approved: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
@@ -1502,7 +1531,8 @@ export default function Admin() {
                               </span>
                             </div>
                             <p className="mt-1.5 text-xs text-muted-foreground truncate max-w-full">
-                              on <span className="font-medium text-foreground">{r.product_name}</span>
+                              on{" "}
+                              <span className="font-medium text-foreground">{r.product_name}</span>
                             </p>
                             {r.title && (
                               <p className="mt-2 text-sm font-semibold text-foreground">
@@ -1619,6 +1649,45 @@ export default function Admin() {
 
                 <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                    Database connection
+                  </h3>
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    This store runs on a shared demo database out of the box. Connect your own Turso
+                    database to keep your data private.
+                  </p>
+                  <div className="mt-4 flex items-center gap-2 rounded-2xl border border-border bg-muted/50 px-3 py-2 font-mono text-xs text-muted-foreground">
+                    <span
+                      className={`h-2 w-2 rounded-full ${usingCustom ? "bg-emerald-400" : "bg-amber-400"}`}
+                    />
+                    {usingCustom ? "Your database" : "Demo database — shared demo data"}
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={() => setTursoOpen(true)}
+                      className="inline-flex h-10 items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-accent-foreground transition-all hover:opacity-90 active:scale-[0.98]"
+                    >
+                      <Database className="h-4 w-4" />
+                      {usingCustom ? "Edit database" : "Connect your database"}
+                    </button>
+                    {usingCustom && (
+                      <button
+                        onClick={() => {
+                          clearTursoConfig();
+                          resetTursoClient();
+                          toast.success("Back to the demo database. Reloading…");
+                          setTimeout(() => window.location.reload(), 700);
+                        }}
+                        className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-background px-5 text-sm font-semibold text-foreground transition-all hover:bg-secondary active:scale-[0.98]"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        Reset to demo
+                      </button>
+                    )}
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
                     Change admin password
                   </h3>
                   <p className="mt-1.5 text-xs text-muted-foreground">
@@ -1665,6 +1734,8 @@ export default function Admin() {
               </div>
             )}
 
+            <TursoSettingsDialog open={tursoOpen} onOpenChange={setTursoOpen} />
+
             {/* ───── DATA TAB ───── */}
             {tab === "data" && (
               <div className="max-w-2xl space-y-6 pb-6">
@@ -1708,8 +1779,8 @@ export default function Admin() {
                     Danger zone
                   </h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    Permanently delete every product, category, order and review in your store.
-                    Your settings are kept. This cannot be undone.
+                    Permanently delete every product, category, order and review in your store. Your
+                    settings are kept. This cannot be undone.
                   </p>
                   <button
                     onClick={confirmClearData}
@@ -1836,7 +1907,7 @@ export default function Admin() {
                       <label className="text-xs font-medium text-foreground">Price</label>
                       <div className="relative">
                         <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground/60">
-                          $
+                          MAD
                         </span>
                         <input
                           required
@@ -2138,9 +2209,7 @@ export default function Admin() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">
-                      Photo (optional)
-                    </label>
+                    <label className="text-xs font-medium text-foreground">Photo (optional)</label>
                     <div className="flex items-center gap-2.5">
                       <button
                         type="button"

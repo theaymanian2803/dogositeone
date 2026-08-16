@@ -3,11 +3,12 @@ import { Link } from "react-router-dom";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { useCart } from "@/hooks/useCart";
+import { formatPrice } from "@/lib/currency";
 import { Trash2, ShoppingBag } from "lucide-react";
 
 export default function Cart() {
   const { items, subtotal, setQty, remove } = useCart();
-  const shipping = subtotal > 50 || subtotal === 0 ? 0 : 5;
+  const shipping = subtotal > 500 || subtotal === 0 ? 0 : 50;
   const total = subtotal + shipping;
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function Cart() {
                       {i.name}
                     </Link>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      ${Number(i.price).toFixed(2)}
+                      {formatPrice(i.price)}
                     </p>
                   </div>
                   <div className="flex items-center rounded-full border border-border">
@@ -64,7 +65,7 @@ export default function Cart() {
                     </button>
                   </div>
                   <p className="w-20 text-right font-semibold">
-                    ${(i.qty * Number(i.price)).toFixed(2)}
+                    {formatPrice(i.qty * Number(i.price))}
                   </p>
                   <button
                     onClick={() => remove(i.id)}
@@ -82,15 +83,15 @@ export default function Cart() {
               <dl className="mt-6 space-y-3 text-sm">
                 <div className="flex justify-between">
                   <dt>Subtotal</dt>
-                  <dd>${subtotal.toFixed(2)}</dd>
+                  <dd>{formatPrice(subtotal)}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt>Shipping</dt>
-                  <dd>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</dd>
+                  <dd>{shipping === 0 ? "Free" : formatPrice(shipping)}</dd>
                 </div>
                 <div className="flex justify-between border-t border-border pt-3 text-base font-bold">
                   <dt>Total</dt>
-                  <dd>${total.toFixed(2)}</dd>
+                  <dd>{formatPrice(total)}</dd>
                 </div>
               </dl>
               <Link

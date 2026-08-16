@@ -5,7 +5,8 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
-import { ShoppingBag, SlidersHorizontal, X, ChevronUp } from "lucide-react";
+import { formatPrice } from "@/lib/currency";
+import { ShoppingBag, SlidersHorizontal, X, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
 
 type Product = {
   id: string;
@@ -21,11 +22,14 @@ type Product = {
 
 type Category = { id: string; name: string; slug: string };
 
+const PAGE_SIZE = 15;
+
 export default function Shop() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -91,6 +95,14 @@ export default function Shop() {
 
     return list;
   }, [products, query, selectedCategories, sortBy]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, selectedCategories, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const page = Math.min(currentPage, totalPages);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function toggleCategory(slug: string) {
     setSelectedCategories((prev) =>
@@ -184,7 +196,7 @@ export default function Shop() {
 
         <div className="flex gap-10">
           <aside
-            className={`w-64 shrink-0 space-y-8 ${mobileFiltersOpen ? "block" : "hidden lg:block"}`}
+            className={`w-64 shrink-0 space-y-8 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7.5rem)] lg:self-start lg:overflow-y-auto ${mobileFiltersOpen ? "block" : "hidden lg:block"}`}
           >
             {activeFilterCount > 0 && (
               <button
@@ -255,7 +267,7 @@ export default function Shop() {
                   {filtered.length} product{filtered.length !== 1 ? "s" : ""}
                 </p>
                 <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
-                  {filtered.map((p) => (
+                  {paginated.map((p) => (
                     <div key={p.id} className="group relative">
                       <Link to={`/product/${p.slug}`} className="block">
                         <div className="relative aspect-square overflow-hidden rounded-2xl bg-card">
@@ -274,7 +286,7 @@ export default function Shop() {
                         <div className="mt-4 text-center">
                           <h3 className="text-sm font-semibold">{p.name}</h3>
                           <p className="mt-1 text-sm text-muted-foreground">
-                            ${Number(p.price).toFixed(2)}
+                            {formatPrice(p.price)}
                           </p>
                           {p.tag && (
                             <span className="mt-2 inline-block rounded-full border border-border px-3 py-0.5 text-xs">
@@ -301,6 +313,40 @@ export default function Shop() {
                     </div>
                   ))}
                 </div>
+                {totalPages > 1 && (
+                  <nav className="mt-10 flex items-center justify-center gap-1">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-sm hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Previous page"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    {Array.from({ length: totalPages }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentPage(i + 1)}
+                        className={`grid h-10 w-10 place-items-center rounded-full text-sm font-medium ${
+                          page === i + 1
+                            ? "bg-accent text-white"
+                            : "border border-border bg-card hover:bg-secondary"
+                        }`}
+                        aria-label={`Page ${i + 1}`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-sm hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Next page"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </nav>
+                )}
               </>
             )}
           </section>

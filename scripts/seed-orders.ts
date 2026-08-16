@@ -199,7 +199,7 @@ async function seed() {
         o.status,
       ],
     });
-    console.log(`  ✓ ${o.first_name} ${o.last_name} — $${o.total.toFixed(2)} (${o.status})`);
+    console.log(`  ✓ ${o.first_name} ${o.last_name} — ${o.total.toFixed(2)} MAD (${o.status})`);
   }
 
   console.log(`\nDone — ${sampleOrders.length} orders inserted.`);

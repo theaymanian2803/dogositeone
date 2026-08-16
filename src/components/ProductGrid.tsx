@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { turso } from "@/integrations/turso/client";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
+import { formatPrice } from "@/lib/currency";
 import { ShoppingBag } from "lucide-react";
 
 type Product = {
@@ -24,12 +25,18 @@ export function ProductGrid() {
       .execute(
         "SELECT id, name, slug, price, image_url, badge, tag FROM products ORDER BY created_at DESC LIMIT 8",
       )
-      .then(({ rows }) => setProducts(rows as Product[]));
+      .then(({ rows }) => setProducts(rows as unknown as Product[]));
   }, []);
 
   return (
     <section className="mx-auto max-w-7xl px-6 pb-20">
-      <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
+      <div className="text-center">
+        <h2 className="text-4xl md:text-5xl">Our Best Products</h2>
+        <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground">
+          Hand-picked favorites loved by pets and their people — fresh from the shop.
+        </p>
+      </div>
+      <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
         {products.map((p) => (
           <div key={p.id} className="group relative">
             <Link to={`/product/${p.slug}`} className="block">
@@ -48,7 +55,7 @@ export function ProductGrid() {
               </div>
               <div className="mt-4 text-center">
                 <h3 className="text-sm font-semibold">{p.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">${Number(p.price).toFixed(2)}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{formatPrice(p.price)}</p>
                 {p.tag && (
                   <span className="mt-2 inline-block rounded-full border border-border px-3 py-0.5 text-xs">
                     {p.tag}

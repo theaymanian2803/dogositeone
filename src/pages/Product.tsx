@@ -7,6 +7,7 @@ import { BadgeCheck, Send, ShoppingBag, Heart, Star, Upload } from "lucide-react
 import { useCart } from "@/hooks/useCart";
 import { useUserAuth } from "@/hooks/useUserAuth";
 import { toast } from "sonner";
+import { formatPrice } from "@/lib/currency";
 
 type Product = {
   id: string;
@@ -283,7 +284,7 @@ export default function ProductPage() {
                 </span>
               </div>
             )}
-            <p className="mt-6 text-4xl font-bold">${Number(product.price).toFixed(2)}</p>
+            <p className="mt-6 text-4xl font-bold">{formatPrice(product.price)}</p>
             <p className="mt-6 leading-relaxed text-muted-foreground">{product.description}</p>
 
             {product.tag && (
@@ -333,7 +334,7 @@ export default function ProductPage() {
 
             <div className="mt-8 grid grid-cols-3 gap-4 border-t border-border pt-6 text-center text-xs text-muted-foreground">
               <div>
-                <p className="font-semibold text-foreground">Free Shipping</p>over $50
+                <p className="font-semibold text-foreground">Free Shipping</p>over 500 MAD
               </div>
               <div>
                 <p className="font-semibold text-foreground">30-Day Returns</p>no questions
@@ -367,7 +368,7 @@ export default function ProductPage() {
                   <div className="mt-3 text-center">
                     <h3 className="text-sm font-semibold">{p.name}</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      ${Number(p.price).toFixed(2)}
+                      {formatPrice(p.price)}
                     </p>
                   </div>
                 </Link>
