@@ -10,8 +10,8 @@ export function Hero() {
         <div className="relative order-2 md:order-1">
           <div className="absolute inset-0 -z-10 mx-auto h-[420px] w-[420px] rounded-full bg-white/40 blur-2xl" />
           <img
-            src={heroPets}
-            alt="Puppy and kitten with bowl of food"
+            src={settings.hero_image || heroPets}
+            alt={settings.hero_image ? settings.brand_name : "Puppy and kitten with bowl of food"}
             width={1024}
             height={1024}
             className="mx-auto w-full max-w-md"
@@ -19,9 +19,7 @@ export function Hero() {
         </div>
 
         <div className="order-1 md:order-2 md:pl-6">
-          <p className="text-xl font-semibold text-accent md:text-2xl">
-            {settings.hero_badge}
-          </p>
+          <p className="text-xl font-semibold text-accent md:text-2xl">{settings.hero_badge}</p>
           <h1 className="mt-3 text-5xl leading-tight md:text-6xl">
             {settings.hero_title.split("\n").map((line) => (
               <span key={line} className="block">

@@ -4,6 +4,7 @@ import { turso } from "@/integrations/turso/client";
 
 export const defaultSettings = {
   brand_name: "PetPals",
+  brand_logo: "",
   tagline: "Everything your furry friend needs, delivered with love to your door.",
   contact_email: "hello@petpals.com",
   contact_phone: "+1 (555) 012-3456",
@@ -17,6 +18,12 @@ export const defaultSettings = {
   promo_title: "Chicken Flavor Food",
   promo_old_price: "600 MAD",
   promo_price: "400 MAD",
+  hero_image: "",
+  banner_image: "",
+  banner_title: "",
+  banner_subtitle: "",
+  banner_button_text: "",
+  banner_button_link: "",
 } as const;
 
 export type Settings = { [K in keyof typeof defaultSettings]: string };
@@ -51,9 +58,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   return (
-    <SettingsContext.Provider value={{ settings, refresh }}>
-      {children}
-    </SettingsContext.Provider>
+    <SettingsContext.Provider value={{ settings, refresh }}>{children}</SettingsContext.Provider>
   );
 }
 

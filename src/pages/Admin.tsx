@@ -124,6 +124,7 @@ type Tab = "products" | "categories" | "orders" | "reviews" | "settings" | "data
 
 const settingsLabels: Record<keyof StoreSettings, string> = {
   brand_name: "Store name",
+  brand_logo: "Brand logo image URL",
   tagline: "Footer tagline",
   hero_badge: "Hero badge text",
   hero_title: "Hero title",
@@ -131,6 +132,12 @@ const settingsLabels: Record<keyof StoreSettings, string> = {
   promo_title: "Promo title",
   promo_old_price: "Promo old price",
   promo_price: "Promo price",
+  hero_image: "Hero image URL",
+  banner_image: "Banner image URL",
+  banner_title: "Banner title",
+  banner_subtitle: "Banner subtitle",
+  banner_button_text: "Banner button text",
+  banner_button_link: "Banner button link",
   contact_email: "Contact email",
   contact_phone: "Contact phone",
   whatsapp_number: "WhatsApp number",
@@ -139,16 +146,27 @@ const settingsLabels: Record<keyof StoreSettings, string> = {
 };
 
 const settingsGroups: { title: string; fields: (keyof StoreSettings)[] }[] = [
-  { title: "Store & Brand", fields: ["brand_name", "tagline"] },
+  { title: "Store & Brand", fields: ["brand_name", "brand_logo", "tagline"] },
   {
     title: "Homepage",
     fields: [
       "hero_badge",
       "hero_title",
       "hero_subtitle",
+      "hero_image",
       "promo_title",
       "promo_old_price",
       "promo_price",
+    ],
+  },
+  {
+    title: "Extra banner",
+    fields: [
+      "banner_image",
+      "banner_title",
+      "banner_subtitle",
+      "banner_button_text",
+      "banner_button_link",
     ],
   },
   {
@@ -167,6 +185,7 @@ const settingsTextareas = new Set<keyof StoreSettings>([
   "tagline",
   "hero_title",
   "hero_subtitle",
+  "banner_subtitle",
   "contact_address",
 ]);
 
@@ -1623,6 +1642,11 @@ export default function Admin() {
                             {key === "hero_title" && (
                               <p className="text-[11px] text-muted-foreground">
                                 Put each line of your headline on its own row.
+                              </p>
+                            )}
+                            {key === "banner_image" && (
+                              <p className="text-[11px] text-muted-foreground">
+                                Leave the image empty to hide this section from the homepage.
                               </p>
                             )}
                           </div>

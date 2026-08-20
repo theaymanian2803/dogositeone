@@ -184,7 +184,15 @@ export function SiteHeader() {
             <SheetContent side="left" className="w-72 p-0 sm:w-80">
               <div className="flex h-full flex-col">
                 <div className="flex items-center gap-2 border-b border-border px-6 py-4">
-                  <PawPrint className="h-6 w-6 text-accent" />
+                  {settings.brand_logo ? (
+                    <img
+                      src={settings.brand_logo}
+                      alt={settings.brand_name}
+                      className="h-7 w-7 rounded-full object-contain"
+                    />
+                  ) : (
+                    <PawPrint className="h-6 w-6 text-accent" />
+                  )}
                   <span className="text-lg font-bold">{settings.brand_name}</span>
                 </div>
                 <nav className="flex-1 overflow-y-auto py-4">
@@ -287,7 +295,15 @@ export function SiteHeader() {
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-1.5 shrink-0">
-            <PawPrint className="h-7 w-7 text-accent sm:h-8 sm:w-8" />
+            {settings.brand_logo ? (
+              <img
+                src={settings.brand_logo}
+                alt={settings.brand_name}
+                className="h-8 w-8 rounded-full object-contain sm:h-9 sm:w-9"
+              />
+            ) : (
+              <PawPrint className="h-7 w-7 text-accent sm:h-8 sm:w-8" />
+            )}
             <span className="text-lg font-bold tracking-tight sm:text-xl">
               {settings.brand_name}
             </span>

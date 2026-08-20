@@ -37,14 +37,20 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2 text-2xl font-extrabold">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-accent text-white">
-              🐾
-            </span>
+            {settings.brand_logo ? (
+              <img
+                src={settings.brand_logo}
+                alt={settings.brand_name}
+                className="h-9 w-9 rounded-full object-contain"
+              />
+            ) : (
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-accent text-white">
+                🐾
+              </span>
+            )}
             {settings.brand_name}
           </div>
-          <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-            {settings.tagline}
-          </p>
+          <p className="mt-4 max-w-xs text-sm text-muted-foreground">{settings.tagline}</p>
         </div>
         {cols.map((c) => (
           <div key={c.title}>
