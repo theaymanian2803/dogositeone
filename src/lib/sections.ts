@@ -1,5 +1,6 @@
 export type SectionSize = "small" | "medium" | "large";
 export type SectionType = "banner" | "grid";
+export type SectionAlign = "left" | "center" | "right";
 
 export type GridItem = { image: string; label: string; link: string };
 
@@ -8,6 +9,7 @@ export type Section = {
   type: SectionType;
   name: string;
   size: SectionSize;
+  align: SectionAlign;
   image_url: string;
   title: string;
   subtitle: string;
@@ -87,6 +89,7 @@ export function sectionFromRow(row: Record<string, unknown>): Section {
     type: row.type === "grid" ? "grid" : "banner",
     name: String(row.name ?? ""),
     size: row.size === "small" || row.size === "large" ? row.size : "medium",
+    align: row.align === "left" || row.align === "right" ? row.align : "center",
     image_url: String(row.image_url ?? ""),
     title: String(row.title ?? ""),
     subtitle: String(row.subtitle ?? ""),

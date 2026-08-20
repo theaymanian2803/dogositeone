@@ -31,7 +31,7 @@ export function SectionGrid({ section }: { section: Section }) {
               src={g.image}
               alt={g.label || ""}
               loading="lazy"
-              className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="aspect-square w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
             />
             {g.label && (
               <span className="absolute inset-x-0 bottom-0 bg-foreground/60 px-4 py-3 text-sm font-semibold text-white backdrop-blur-sm">

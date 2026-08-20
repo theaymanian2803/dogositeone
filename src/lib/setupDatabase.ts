@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS sections (
   type        TEXT NOT NULL,
   name        TEXT NOT NULL,
   size        TEXT NOT NULL DEFAULT 'medium',
+  align       TEXT NOT NULL DEFAULT 'center',
   image_url   TEXT,
   title       TEXT,
   subtitle    TEXT,
@@ -89,6 +90,11 @@ export async function setupDatabase(): Promise<void> {
   const cols = await turso.execute("PRAGMA table_info(products)");
   if (!(cols.rows as unknown as { name: string }[]).some((c) => c.name === "images")) {
     await turso.execute("ALTER TABLE products ADD COLUMN images TEXT");
+  }
+
+  const sectionCols = await turso.execute("PRAGMA table_info(sections)");
+  if (!(sectionCols.rows as unknown as { name: string }[]).some((c) => c.name === "align")) {
+    await turso.execute("ALTER TABLE sections ADD COLUMN align TEXT NOT NULL DEFAULT 'center'");
   }
 
   const existing = await turso.execute({

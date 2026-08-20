@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Plus,
+  Save,
+  Trash2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useSections } from "@/hooks/useSections";
 import { useSettings } from "@/hooks/useSettings";
@@ -50,14 +61,15 @@ export function ControlsManager() {
     try {
       await turso.execute({
         sql: isNew
-          ? "INSERT INTO sections (id, type, name, size, image_url, title, subtitle, button_text, button_link, grid_items) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-          : "UPDATE sections SET type=?, name=?, size=?, image_url=?, title=?, subtitle=?, button_text=?, button_link=?, grid_items=? WHERE id=?",
+          ? "INSERT INTO sections (id, type, name, size, align, image_url, title, subtitle, button_text, button_link, grid_items) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          : "UPDATE sections SET type=?, name=?, size=?, align=?, image_url=?, title=?, subtitle=?, button_text=?, button_link=?, grid_items=? WHERE id=?",
         args: isNew
           ? [
               section.id,
               section.type,
               section.name,
               section.size,
+              section.align,
               section.image_url,
               section.title,
               section.subtitle,
@@ -69,6 +81,7 @@ export function ControlsManager() {
               section.type,
               section.name,
               section.size,
+              section.align,
               section.image_url,
               section.title,
               section.subtitle,
@@ -230,6 +243,7 @@ function SectionEditorModal({
   const [name, setName] = useState(initial?.name ?? "");
   const [type, setType] = useState<Section["type"]>(initial?.type ?? "banner");
   const [size, setSize] = useState<Section["size"]>(initial?.size ?? "medium");
+  const [align, setAlign] = useState<Section["align"]>(initial?.align ?? "center");
   const [imageUrl, setImageUrl] = useState(initial?.image_url ?? "");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [subtitle, setSubtitle] = useState(initial?.subtitle ?? "");
@@ -256,6 +270,7 @@ function SectionEditorModal({
       type,
       name: name.trim(),
       size,
+      align,
       image_url: imageUrl.trim(),
       title: title.trim(),
       subtitle: subtitle.trim(),
@@ -372,6 +387,32 @@ function SectionEditorModal({
                     placeholder="/shop"
                     className={inputClass}
                   />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-foreground">Content alignment</label>
+                <div className="flex items-center gap-1 rounded-full border border-border bg-background p-1">
+                  {(["left", "center", "right"] as const).map((a) => (
+                    <button
+                      key={a}
+                      type="button"
+                      onClick={() => setAlign(a)}
+                      className={`flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-medium transition-all ${
+                        align === a
+                          ? "bg-accent text-accent-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {a === "left" ? (
+                        <AlignLeft className="h-3.5 w-3.5" />
+                      ) : a === "center" ? (
+                        <AlignCenter className="h-3.5 w-3.5" />
+                      ) : (
+                        <AlignRight className="h-3.5 w-3.5" />
+                      )}
+                      {a.charAt(0).toUpperCase() + a.slice(1)}
+                    </button>
+                  ))}
                 </div>
               </div>
             </>

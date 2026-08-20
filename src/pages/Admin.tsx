@@ -285,6 +285,10 @@ export default function Admin() {
     if (!(cols.rows as unknown as { name: string }[]).some((c) => c.name === "images")) {
       await turso.execute("ALTER TABLE products ADD COLUMN images TEXT");
     }
+    const sectionCols = await turso.execute("PRAGMA table_info(sections)");
+    if (!(sectionCols.rows as unknown as { name: string }[]).some((c) => c.name === "align")) {
+      await turso.execute("ALTER TABLE sections ADD COLUMN align TEXT NOT NULL DEFAULT 'center'");
+    }
     const tables = await turso.execute(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='reviews'",
     );
@@ -316,6 +320,7 @@ export default function Admin() {
         type        TEXT NOT NULL,
         name        TEXT NOT NULL,
         size        TEXT NOT NULL DEFAULT 'medium',
+        align       TEXT NOT NULL DEFAULT 'center',
         image_url   TEXT,
         title       TEXT,
         subtitle    TEXT,
