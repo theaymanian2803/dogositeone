@@ -19,11 +19,8 @@ export const defaultSettings = {
   promo_old_price: "600 MAD",
   promo_price: "400 MAD",
   hero_image: "",
-  banner_image: "",
-  banner_title: "",
-  banner_subtitle: "",
-  banner_button_text: "",
-  banner_button_link: "",
+  homepage_sections:
+    '[{"id":"hero","visible":true},{"id":"categories","visible":true},{"id":"products","visible":true},{"id":"promo","visible":true},{"id":"best","visible":true}]',
 } as const;
 
 export type Settings = { [K in keyof typeof defaultSettings]: string };

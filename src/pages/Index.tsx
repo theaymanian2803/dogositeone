@@ -1,6 +1,5 @@
 import { BestProducts } from "@/components/BestProducts";
 import { Categories } from "@/components/Categories";
-import { ExtraBanner } from "@/components/ExtraBanner";
 import { Hero } from "@/components/Hero";
 import { ProductGrid } from "@/components/ProductGrid";
 import { PromoBanner } from "@/components/PromoBanner";
@@ -20,7 +19,6 @@ export default function Index() {
         <Categories />
         <ProductGrid />
         <PromoBanner />
-        <ExtraBanner />
         <BestProducts />
       </main>
       <SiteFooter />
