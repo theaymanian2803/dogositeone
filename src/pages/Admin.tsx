@@ -7,6 +7,7 @@ import { ADMIN_EMAIL } from "@/lib/admin";
 import { formatPrice } from "@/lib/currency";
 import { clearTursoConfig, isUsingCustomConfig } from "@/lib/tursoConfig";
 import { TursoSettingsDialog } from "@/components/TursoSettingsDialog";
+import { ControlsManager } from "@/components/admin/ControlsManager";
 import {
   Box,
   Check,
@@ -1665,6 +1666,8 @@ export default function Admin() {
                     )}
                   </button>
                 </form>
+
+                <ControlsManager />
 
                 <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
