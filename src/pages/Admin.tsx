@@ -324,6 +324,21 @@ export default function Admin() {
         value TEXT
       )
     `);
+    await turso.execute(`
+      CREATE TABLE IF NOT EXISTS sections (
+        id          TEXT PRIMARY KEY,
+        type        TEXT NOT NULL,
+        name        TEXT NOT NULL,
+        size        TEXT NOT NULL DEFAULT 'medium',
+        image_url   TEXT,
+        title       TEXT,
+        subtitle    TEXT,
+        button_text TEXT,
+        button_link TEXT,
+        grid_items  TEXT,
+        created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
   }
 
   async function load() {
