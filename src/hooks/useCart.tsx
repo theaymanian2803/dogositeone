@@ -22,17 +22,18 @@ type CartCtx = {
 const Ctx = createContext<CartCtx | null>(null);
 const KEY = "petpals_cart";
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+function readCart(): CartItem[] {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return JSON.parse(raw) as CartItem[];
+  } catch {
+    /* ignore */
+  }
+  return [];
+}
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setItems(JSON.parse(raw));
-    } catch {
-      /* ignore */
-    }
-  }, []);
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [items, setItems] = useState<CartItem[]>(readCart);
 
   useEffect(() => {
     try {

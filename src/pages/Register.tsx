@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useUserAuth } from "@/hooks/useUserAuth";
+import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 
 export default function Register() {
   const { register, user } = useUserAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectParam = searchParams.get("redirect");
@@ -46,13 +48,13 @@ export default function Register() {
           <Link to="/" className="text-sm text-muted-foreground hover:text-accent">
             ← Back to store
           </Link>
-          <h1 className="mt-4 text-3xl font-bold">Create account</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Join us and track your orders.</p>
+          <h1 className="mt-4 text-3xl font-bold">{t("register.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("register.subtitle")}</p>
           <form onSubmit={submit} className="mt-6 space-y-4">
             <input
               required
               minLength={2}
-              placeholder="Full name"
+              placeholder={t("register.name")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="h-11 w-full rounded-lg border border-border bg-background px-4 outline-none focus:border-accent"
@@ -60,7 +62,7 @@ export default function Register() {
             <input
               type="email"
               required
-              placeholder="Email"
+              placeholder={t("register.email")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-11 w-full rounded-lg border border-border bg-background px-4 outline-none focus:border-accent"
@@ -69,7 +71,7 @@ export default function Register() {
               type="password"
               required
               minLength={6}
-              placeholder="Password (min 6 chars)"
+              placeholder={t("register.password")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-11 w-full rounded-lg border border-border bg-background px-4 outline-none focus:border-accent"
@@ -78,13 +80,13 @@ export default function Register() {
               disabled={loading}
               className="h-11 w-full rounded-lg bg-accent font-semibold text-white disabled:opacity-50"
             >
-              {loading ? "..." : "Create account"}
+              {loading ? "..." : t("register.submit")}
             </button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
+            {t("register.haveAccount")}{" "}
             <Link to="/login" className="text-accent hover:underline">
-              Sign in
+              {t("register.signIn")}
             </Link>
           </p>
         </div>

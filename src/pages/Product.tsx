@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { turso } from "@/integrations/turso/client";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -8,6 +8,8 @@ import { useCart } from "@/hooks/useCart";
 import { useUserAuth } from "@/hooks/useUserAuth";
 import { toast } from "sonner";
 import { formatPrice } from "@/lib/currency";
+import { useSettings } from "@/hooks/useSettings";
+import { useI18n } from "@/lib/i18n";
 
 type Product = {
   id: string;
@@ -48,7 +50,10 @@ function Stars({ rating, className = "h-4 w-4" }: { rating: number; className?: 
   return (
     <span className="inline-flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((i) => (
-        <Star key={i} className={`${className} ${i <= rating ? "fill-accent text-accent" : "text-border"}`} />
+        <Star
+          key={i}
+          className={`${className} ${i <= rating ? "fill-accent text-accent" : "text-border"}`}
+        />
       ))}
     </span>
   );
@@ -56,6 +61,8 @@ function Stars({ rating, className = "h-4 w-4" }: { rating: number; className?: 
 
 export default function ProductPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { t } = useI18n();
+  const { settings } = useSettings();
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +90,7 @@ export default function ProductPage() {
         const data = rs.rows[0] as unknown as Product | undefined;
         setProduct(data ?? null);
         if (data) {
-          document.title = `${data.name} — PetPals`;
+          document.title = `${data.name} â€” PetPals`;
           const [relRs, revRs] = await Promise.all([
             turso.execute({
               sql: "SELECT * FROM products WHERE category = ? AND id != ? LIMIT 4",
@@ -181,7 +188,7 @@ export default function ProductPage() {
       <div className="min-h-screen bg-background">
         <SiteHeader />
         <div className="mx-auto max-w-7xl px-6 py-20 text-center text-muted-foreground">
-          Loading…
+          Loadingâ€¦
         </div>
       </div>
     );
@@ -192,10 +199,10 @@ export default function ProductPage() {
       <div className="min-h-screen bg-background">
         <SiteHeader />
         <div className="mx-auto max-w-7xl px-6 py-20 text-center">
-          <h1 className="text-2xl font-bold">Couldn't load this product</h1>
+          <h1 className="text-2xl font-bold">{t("product.loadError")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{error}</p>
           <Link to="/" className="mt-5 inline-block text-accent hover:underline">
-            ← Back to store
+            â† Back to store
           </Link>
         </div>
       </div>
@@ -207,9 +214,9 @@ export default function ProductPage() {
       <div className="min-h-screen bg-background">
         <SiteHeader />
         <div className="mx-auto max-w-7xl px-6 py-20 text-center">
-          <h1 className="text-3xl font-bold">Product not found</h1>
+          <h1 className="text-3xl font-bold">{t("product.notFound")}</h1>
           <Link to="/" className="mt-4 inline-block text-accent hover:underline">
-            ← Back to store
+            â† Back to store
           </Link>
         </div>
       </div>
@@ -280,7 +287,7 @@ export default function ProductPage() {
               <div className="mt-4 flex items-center gap-2">
                 <Stars rating={Math.round(avgRating)} />
                 <span className="ml-2 text-sm text-muted-foreground">
-                  {avgRating.toFixed(1)} · {reviews.length} review{reviews.length > 1 ? "s" : ""}
+                  {avgRating.toFixed(1)} Â· {reviews.length} review{reviews.length > 1 ? "s" : ""}
                 </span>
               </div>
             )}
@@ -289,7 +296,7 @@ export default function ProductPage() {
 
             {product.tag && (
               <div className="mt-6">
-                <span className="text-sm text-muted-foreground">Size: </span>
+                <span className="text-sm text-muted-foreground">{t("product.size")} </span>
                 <span className="inline-block rounded-full border border-border px-4 py-1 text-sm">
                   {product.tag}
                 </span>
@@ -299,7 +306,7 @@ export default function ProductPage() {
             <div className="mt-8 flex items-center gap-4">
               <div className="flex items-center rounded-full border border-border">
                 <button onClick={() => setQty(Math.max(1, qty - 1))} className="h-11 w-11 text-lg">
-                  −
+                  âˆ’
                 </button>
                 <span className="w-10 text-center font-semibold">{qty}</span>
                 <button onClick={() => setQty(qty + 1)} className="h-11 w-11 text-lg">
@@ -322,7 +329,7 @@ export default function ProductPage() {
                 }}
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-accent py-3 font-semibold text-white hover:opacity-90"
               >
-                <ShoppingBag className="h-4 w-4" /> Add to Cart
+                <ShoppingBag className="h-4 w-4" /> {t("products.add")}
               </button>
               <button
                 className="grid h-11 w-11 place-items-center rounded-full border border-border hover:bg-secondary"
@@ -334,13 +341,18 @@ export default function ProductPage() {
 
             <div className="mt-8 grid grid-cols-3 gap-4 border-t border-border pt-6 text-center text-xs text-muted-foreground">
               <div>
-                <p className="font-semibold text-foreground">Free Shipping</p>over 500 MAD
+                <p className="font-semibold text-foreground">{t("product.freeShipping")}</p>
+                {t("product.overThreshold", {
+                  threshold: Number(settings.free_shipping_threshold) || 500,
+                })}
               </div>
               <div>
-                <p className="font-semibold text-foreground">30-Day Returns</p>no questions
+                <p className="font-semibold text-foreground">{t("product.returns")}</p>
+                {t("product.returnsSub")}
               </div>
               <div>
-                <p className="font-semibold text-foreground">Vet Approved</p>certified safe
+                <p className="font-semibold text-foreground">{t("product.vetApproved")}</p>
+                {t("product.vetApprovedSub")}
               </div>
             </div>
           </div>
@@ -348,7 +360,7 @@ export default function ProductPage() {
 
         {related.length > 0 && (
           <section className="mt-24">
-            <h2 className="text-3xl font-bold">Related products</h2>
+            <h2 className="text-3xl font-bold">{t("product.related")}</h2>
             <div className="mt-8 grid grid-cols-2 gap-6 md:grid-cols-4">
               {related.map((p) => (
                 <Link key={p.id} to={`/product/${p.slug}`} className="group">
@@ -367,9 +379,7 @@ export default function ProductPage() {
                   </div>
                   <div className="mt-3 text-center">
                     <h3 className="text-sm font-semibold">{p.name}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {formatPrice(p.price)}
-                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">{formatPrice(p.price)}</p>
                   </div>
                 </Link>
               ))}
@@ -377,14 +387,14 @@ export default function ProductPage() {
           </section>
         )}
 
-        {/* ───── REVIEWS ───── */}
+        {/* â”€â”€â”€â”€â”€ REVIEWS â”€â”€â”€â”€â”€ */}
         <section className="mt-24">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-3xl font-bold">Reviews</h2>
+              <h2 className="text-3xl font-bold">{t("product.reviews")}</h2>
               <div className="mt-4 flex items-center gap-4">
                 <span className="text-5xl font-bold tracking-tight">
-                  {reviews.length > 0 ? avgRating.toFixed(1) : "—"}
+                  {reviews.length > 0 ? avgRating.toFixed(1) : "â€”"}
                 </span>
                 <div>
                   <Stars rating={Math.round(avgRating)} className="h-5 w-5" />
@@ -402,12 +412,18 @@ export default function ProductPage() {
                       ? Math.round((breakdown[n - 1] / reviews.length) * 100)
                       : 0;
                     return (
-                      <div key={n} className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div
+                        key={n}
+                        className="flex items-center gap-3 text-xs text-muted-foreground"
+                      >
                         <span className="flex w-8 items-center gap-1">
                           {n} <Star className="h-3 w-3 fill-accent text-accent" />
                         </span>
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
-                          <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+                          <div
+                            className="h-full rounded-full bg-accent"
+                            style={{ width: `${pct}%` }}
+                          />
                         </div>
                         <span className="w-8 text-right tabular-nums">{pct}%</span>
                       </div>
@@ -419,7 +435,9 @@ export default function ProductPage() {
 
             {user && (
               <button
-                onClick={() => document.getElementById("review-form")?.scrollIntoView({ behavior: "smooth" })}
+                onClick={() =>
+                  document.getElementById("review-form")?.scrollIntoView({ behavior: "smooth" })
+                }
                 className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-accent px-6 text-sm font-semibold text-white transition-transform hover:scale-105"
               >
                 <Send className="h-4 w-4" /> Write a review
@@ -434,9 +452,11 @@ export default function ProductPage() {
               onSubmit={submitReview}
               className="mt-8 rounded-3xl border border-border bg-card p-6 sm:p-8"
             >
-              <h3 className="text-lg font-bold tracking-tight">Share your experience</h3>
+              <h3 className="text-lg font-bold tracking-tight">{t("product.share")}</h3>
               <div className="mt-5 flex items-center gap-1">
-                <span className="text-xs font-medium text-muted-foreground">Your rating</span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {t("product.yourRating")}
+                </span>
                 <div className="ml-4 flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <button
@@ -458,14 +478,14 @@ export default function ProductPage() {
               </div>
               <div className="mt-5 grid gap-4">
                 <input
-                  placeholder="Review title (optional)"
+                  placeholder={t("product.reviewTitle")}
                   value={reviewForm.title}
                   onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })}
                   className="h-11 w-full rounded-full border border-border bg-background px-5 text-sm outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/25"
                 />
                 <textarea
                   required
-                  placeholder="What did you like or dislike? How did it work out for your pet?"
+                  placeholder={t("product.reviewBody")}
                   value={reviewForm.body}
                   onChange={(e) => setReviewForm({ ...reviewForm, body: e.target.value })}
                   rows={4}
@@ -499,7 +519,7 @@ export default function ProductPage() {
                     </div>
                     <input
                       type="url"
-                      placeholder="…or paste an image link"
+                      placeholder={t("product.imageLink")}
                       value={reviewForm.image_url}
                       onChange={(e) => setReviewForm({ ...reviewForm, image_url: e.target.value })}
                       className="h-10 w-full rounded-full border border-border bg-background px-4 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/25 sm:max-w-xs"
@@ -538,7 +558,7 @@ export default function ProductPage() {
           <div className="mt-10 space-y-5">
             {reviews.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                No reviews yet — your review could be the first!
+                No reviews yet â€” your review could be the first!
               </p>
             )}
             {reviews.map((r) => {
@@ -548,8 +568,7 @@ export default function ProductPage() {
                 day: "numeric",
               });
               const initials =
-                (r.user_name?.[0] ?? "?").toUpperCase() +
-                (r.user_name?.[1] ?? "").toUpperCase();
+                (r.user_name?.[0] ?? "?").toUpperCase() + (r.user_name?.[1] ?? "").toUpperCase();
               return (
                 <article
                   key={r.id}
@@ -577,7 +596,7 @@ export default function ProductPage() {
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold text-foreground">{r.user_name}</span>
-                      <span className="text-xs text-muted-foreground">· {dateStr}</span>
+                      <span className="text-xs text-muted-foreground">Â· {dateStr}</span>
                     </div>
                     {r.title && (
                       <h4 className="mt-2.5 text-sm font-bold tracking-tight text-foreground">

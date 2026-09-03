@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useUserAuth } from "@/hooks/useUserAuth";
 import { turso } from "@/integrations/turso/client";
+import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { formatPrice } from "@/lib/currency";
@@ -31,6 +32,7 @@ const statusColor: Record<string, string> = {
 
 export default function Account() {
   const { user, loading, logout } = useUserAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -51,15 +53,29 @@ export default function Account() {
 
   function loadOrders(phone?: string) {
     setOrdersLoading(true);
-    const savedPhone = phone || (() => { try { return localStorage.getItem("petpals_last_phone") || ""; } catch { return ""; } })();
-    if (!savedPhone) { setOrders([]); setOrdersLoading(false); return; }
-    turso.execute({
-      sql: "SELECT * FROM orders WHERE phone = ? ORDER BY created_at DESC",
-      args: [savedPhone],
-    }).then((rs) => {
-      setOrders(rs.rows as unknown as Order[]);
+    const savedPhone =
+      phone ||
+      (() => {
+        try {
+          return localStorage.getItem("petpals_last_phone") || "";
+        } catch {
+          return "";
+        }
+      })();
+    if (!savedPhone) {
+      setOrders([]);
       setOrdersLoading(false);
-    });
+      return;
+    }
+    turso
+      .execute({
+        sql: "SELECT * FROM orders WHERE phone = ? ORDER BY created_at DESC",
+        args: [savedPhone],
+      })
+      .then((rs) => {
+        setOrders(rs.rows as unknown as Order[]);
+        setOrdersLoading(false);
+      });
   }
 
   function handleLogout() {
@@ -81,7 +97,7 @@ export default function Account() {
     <div className="min-h-screen bg-background flex flex-col">
       <SiteHeader />
       <main className="flex-1 mx-auto w-full max-w-7xl px-6 py-12">
-        <h1 className="text-3xl font-bold tracking-tight">My Account</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("account.title")}</h1>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[320px_1fr]">
           <aside className="space-y-6">
@@ -94,7 +110,8 @@ export default function Account() {
                   <div className="min-w-0">
                     <p className="font-semibold text-foreground truncate">{user?.name || "User"}</p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Mail className="h-3 w-3 shrink-0" /> <span className="truncate">{user?.email}</span>
+                      <Mail className="h-3 w-3 shrink-0" />{" "}
+                      <span className="truncate">{user?.email}</span>
                     </p>
                   </div>
                 </div>
@@ -102,19 +119,23 @@ export default function Account() {
                   onClick={handleLogout}
                   className="mt-4 flex w-full items-center justify-center gap-2 border border-border py-2 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
                 >
-                  <LogOut className="h-4 w-4" /> Sign out
+                  <LogOut className="h-4 w-4" /> {t("account.signOut")}
                 </button>
               </div>
             </div>
 
             <div className="border border-border">
               <div className="px-6 py-4 border-b border-border">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Track your order</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("track.title")}
+                </h3>
               </div>
               <div className="px-6 py-5">
                 <form onSubmit={handleLookup} className="space-y-3">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Phone number used at checkout</label>
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Phone number used at checkout
+                    </label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
                       <input
@@ -130,7 +151,7 @@ export default function Account() {
                     type="submit"
                     className="w-full border border-accent bg-accent py-2 text-sm font-semibold text-white hover:opacity-90 transition-all active:scale-[0.98]"
                   >
-                    <Search className="h-4 w-4 inline mr-1.5 -mt-0.5" /> Find orders
+                    <Search className="h-4 w-4 inline mr-1.5 -mt-0.5" /> {t("account.findOrders")}
                   </button>
                 </form>
               </div>
@@ -140,7 +161,7 @@ export default function Account() {
           <section>
             <div className="flex items-center gap-2 mb-6">
               <Package className="h-5 w-5 text-accent" />
-              <h2 className="text-xl font-bold">My Orders</h2>
+              <h2 className="text-xl font-bold">{t("account.myOrders")}</h2>
             </div>
 
             {ordersLoading ? (
@@ -162,7 +183,8 @@ export default function Account() {
             ) : (
               <div className="space-y-3">
                 {orders.map((o) => {
-                  const parsedItems: OrderItem[] = typeof o.items === "string" ? JSON.parse(o.items) : (o.items ?? []);
+                  const parsedItems: OrderItem[] =
+                    typeof o.items === "string" ? JSON.parse(o.items) : (o.items ?? []);
                   return (
                     <div key={o.id} className="border border-border">
                       <div className="flex items-start justify-between gap-2 px-5 py-4 border-b border-border">
@@ -179,15 +201,25 @@ export default function Account() {
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-base font-bold text-foreground">{formatPrice(o.total)}</p>
-                          <span className={`inline-block mt-1.5 px-2.5 py-0.5 text-[11px] font-semibold capitalize ${statusColor[o.status] || "bg-slate-100 text-slate-700"}`}>
+                          <p className="text-base font-bold text-foreground">
+                            {formatPrice(o.total)}
+                          </p>
+                          <span
+                            className={`inline-block mt-1.5 px-2.5 py-0.5 text-[11px] font-semibold capitalize ${statusColor[o.status] || "bg-slate-100 text-slate-700"}`}
+                          >
                             {o.status}
                           </span>
                         </div>
                       </div>
                       <div className="px-5 py-3">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                          <span>{new Date(o.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
+                          <span>
+                            {new Date(o.created_at).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
                           <ChevronRight className="h-3 w-3" />
                           <span className="truncate">{o.address}</span>
                         </div>
@@ -197,7 +229,9 @@ export default function Account() {
                               <li key={idx} className="flex items-center gap-2 text-xs">
                                 <span className="flex-1 truncate text-foreground">{it.name}</span>
                                 <span className="text-muted-foreground shrink-0">×{it.qty}</span>
-                                <span className="font-medium text-foreground shrink-0 w-14 text-right">{formatPrice(it.qty * it.price)}</span>
+                                <span className="font-medium text-foreground shrink-0 w-14 text-right">
+                                  {formatPrice(it.qty * it.price)}
+                                </span>
                               </li>
                             ))}
                           </ul>

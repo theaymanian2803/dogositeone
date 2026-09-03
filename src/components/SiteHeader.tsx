@@ -14,15 +14,25 @@ import {
   Shirt,
   Bed,
   Puzzle,
+  Languages,
+  Check,
 } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { useUserAuth } from "@/hooks/useUserAuth";
 import { useSettings } from "@/hooks/useSettings";
+import { useI18n, LANGS } from "@/lib/i18n";
 import { turso } from "@/integrations/turso/client";
 import { DemoBanner } from "@/components/DemoBanner";
+import { TrustBar } from "@/components/TrustBar";
 import { formatPrice } from "@/lib/currency";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type ProductSearchResult = {
   id: string;
@@ -34,8 +44,8 @@ type ProductSearchResult = {
 };
 
 const staticNav = [
-  { label: "Home", to: "/" },
-  { label: "Shop", to: "/shop" },
+  { key: "nav.home", to: "/" },
+  { key: "nav.shop", to: "/shop" },
 ];
 
 const categoryIcons: Record<string, typeof Dog> = {
@@ -52,6 +62,7 @@ export function SiteHeader() {
   const { count } = useCart();
   const { user } = useUserAuth();
   const { settings } = useSettings();
+  const { t, lang, setLang } = useI18n();
   const navigate = useNavigate();
   const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [search, setSearch] = useState("");
@@ -168,6 +179,7 @@ export function SiteHeader() {
 
   return (
     <>
+      <TrustBar />
       <DemoBanner />
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 sm:py-4">
@@ -198,22 +210,22 @@ export function SiteHeader() {
                 <nav className="flex-1 overflow-y-auto py-4">
                   <div className="space-y-1 px-3">
                     <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Pages
+                      {t("nav.pages")}
                     </p>
                     {staticNav.map((n) => (
                       <Link
-                        key={n.label}
+                        key={n.key}
                         to={n.to}
                         onClick={() => setSheetOpen(false)}
                         className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
                       >
-                        {n.label}
+                        {t(n.key)}
                       </Link>
                     ))}
                   </div>
                   <div className="mt-6 space-y-1 px-3">
                     <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Categories
+                      {t("nav.categories")}
                     </p>
                     {categories.map((cat) => {
                       const Icon = categoryIcons[cat.slug] || Puzzle;
@@ -232,7 +244,7 @@ export function SiteHeader() {
                   </div>
                   <div className="mt-6 space-y-1 px-3">
                     <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Account
+                      {t("nav.account_section")}
                     </p>
                     {user ? (
                       <>
@@ -241,14 +253,14 @@ export function SiteHeader() {
                           onClick={() => setSheetOpen(false)}
                           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
                         >
-                          <User className="h-4 w-4 text-accent" /> My Account
+                          <User className="h-4 w-4 text-accent" /> {t("nav.account")}
                         </Link>
                         <Link
                           to="/admin"
                           onClick={() => setSheetOpen(false)}
                           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
                         >
-                          <Lock className="h-4 w-4 text-accent" /> Admin
+                          <Lock className="h-4 w-4 text-accent" /> {t("nav.admin")}
                         </Link>
                       </>
                     ) : (
@@ -257,7 +269,7 @@ export function SiteHeader() {
                         onClick={() => setSheetOpen(false)}
                         className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
                       >
-                        <User className="h-4 w-4 text-accent" /> Sign in
+                        <User className="h-4 w-4 text-accent" /> {t("nav.signin")}
                       </Link>
                     )}
                   </div>
@@ -267,7 +279,7 @@ export function SiteHeader() {
                     <form onSubmit={handleSearch} className="relative">
                       <input
                         type="search"
-                        placeholder="Search products…"
+                        placeholder={t("nav.search")}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="h-10 w-full rounded-full border border-border bg-secondary/60 pl-4 pr-10 text-sm outline-none focus:border-accent"
@@ -313,14 +325,15 @@ export function SiteHeader() {
           <nav className="hidden items-center gap-1 text-[15px] font-medium lg:flex">
             {staticNav.map((n) => (
               <NavLink
-                key={n.label}
+                key={n.key}
                 to={n.to}
                 end={n.to === "/"}
+                data-tour={n.key === "nav.shop" ? "nav-shop" : undefined}
                 className={({ isActive }) =>
                   `rounded-lg px-3 py-2 transition-colors hover:bg-secondary hover:text-accent ${isActive ? "text-accent" : "text-foreground"}`
                 }
               >
-                {n.label}
+                {t(n.key)}
               </NavLink>
             ))}
             <button
@@ -328,7 +341,7 @@ export function SiteHeader() {
               onClick={() => setMegaOpen((p) => !p)}
               className={`flex items-center gap-1 rounded-lg px-3 py-2 transition-colors hover:bg-secondary hover:text-accent ${megaOpen ? "text-accent bg-secondary" : "text-foreground"}`}
             >
-              Categories
+              {t("nav.categories")}
               <ChevronDown
                 className={`h-4 w-4 transition-transform duration-200 ${megaOpen ? "rotate-180" : ""}`}
               />
@@ -381,35 +394,33 @@ export function SiteHeader() {
           )}
 
           <div className="ml-auto flex items-center gap-1.5 sm:gap-3">
-            <div ref={desktopSearchRef} className="relative hidden md:block lg:w-72">
-              <form onSubmit={handleSearch} className="relative">
-                <input
-                  type="search"
-                  placeholder="Search products…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="h-9 w-full rounded-full border border-border bg-secondary/60 pl-4 pr-10 text-sm outline-none transition-colors focus:border-accent"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"
-                >
-                  <Search className="h-3.5 w-3.5" />
-                </button>
-              </form>
-              <SearchResults
-                query={search}
-                open={searchOpen}
-                loading={searchLoading}
-                results={results}
-                onSelect={selectResult}
-                onViewAll={goToResults}
-              />
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label={t("lang.label")}
+                className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-3 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-secondary"
+              >
+                <Languages className="h-4 w-4 text-accent" />
+                {LANGS.find((l) => l.code === lang)?.label}
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-36">
+                {LANGS.map((l) => (
+                  <DropdownMenuItem
+                    key={l.code}
+                    onClick={() => setLang(l.code)}
+                    className={lang === l.code ? "bg-accent/10 font-semibold text-accent" : ""}
+                  >
+                    {l.label}
+                    {lang === l.code && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Link
               to="/cart"
+              data-tour="nav-cart"
               className="relative grid h-9 w-9 place-items-center rounded-full hover:bg-secondary"
-              aria-label="Cart"
+              aria-label={t("nav.cart")}
             >
               <ShoppingBag className="h-5 w-5" />
               {count > 0 && (
@@ -430,18 +441,52 @@ export function SiteHeader() {
               <Link
                 to="/login"
                 className="hidden sm:grid h-9 w-9 place-items-center rounded-full hover:bg-secondary"
-                aria-label="Sign in"
+                aria-label={t("nav.signin")}
               >
                 <User className="h-5 w-5" />
               </Link>
             )}
             <Link
               to="/admin"
+              data-tour="nav-admin"
               className="hidden sm:grid h-9 w-9 place-items-center rounded-full hover:bg-secondary"
-              aria-label="Admin"
+              aria-label={t("nav.admin")}
             >
               <Lock className="h-5 w-5" />
             </Link>
+          </div>
+        </div>
+
+        <div className="border-t border-border bg-background/60 px-4 py-3 sm:px-6">
+          <div
+            ref={desktopSearchRef}
+            data-tour="nav-search"
+            className="relative mx-auto w-full max-w-2xl"
+          >
+            <form onSubmit={handleSearch} className="relative">
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="search"
+                placeholder={t("nav.search")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-11 w-full rounded-full border border-border bg-secondary/60 pl-11 pr-24 text-sm outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/25"
+              />
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1/2 inline-flex h-8 -translate-y-1/2 items-center rounded-full bg-accent px-4 text-xs font-semibold text-white transition-all hover:opacity-90"
+              >
+                {t("shop.search")}
+              </button>
+            </form>
+            <SearchResults
+              query={search}
+              open={searchOpen}
+              loading={searchLoading}
+              results={results}
+              onSelect={selectResult}
+              onViewAll={goToResults}
+            />
           </div>
         </div>
       </header>
@@ -464,13 +509,16 @@ function SearchResults({
   onSelect: (p: ProductSearchResult) => void;
   onViewAll: () => void;
 }) {
+  const { t } = useI18n();
   if (!open) return null;
   return (
     <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/10">
       {loading ? (
-        <p className="px-4 py-3 text-sm text-muted-foreground">Searching…</p>
+        <p className="px-4 py-3 text-sm text-muted-foreground">{t("track.searching")}</p>
       ) : results.length === 0 ? (
-        <p className="px-4 py-3 text-sm text-muted-foreground">No products found for “{query}”</p>
+        <p className="px-4 py-3 text-sm text-muted-foreground">
+          {t("shop.noProducts")} “{query}”
+        </p>
       ) : (
         <>
           <ul className="max-h-80 overflow-y-auto">

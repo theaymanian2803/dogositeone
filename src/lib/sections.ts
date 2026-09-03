@@ -27,7 +27,14 @@ export type SectionRow = {
   section: Section | null;
 };
 
-export const FIXED_SECTION_IDS = ["hero", "categories", "products", "promo", "best"] as const;
+export const FIXED_SECTION_IDS = [
+  "hero",
+  "categories",
+  "products",
+  "promo",
+  "best",
+  "reviews",
+] as const;
 
 export const FIXED_SECTION_LABELS: Record<string, string> = {
   hero: "Hero",
@@ -35,6 +42,7 @@ export const FIXED_SECTION_LABELS: Record<string, string> = {
   products: "Product grid",
   promo: "Promo banner",
   best: "Best products",
+  reviews: "Customer reviews",
 };
 
 export function parseGridItems(raw: string | null): GridItem[] {
@@ -72,6 +80,9 @@ export function parseSectionsOrder(raw: string | null, custom: Section[]): Secti
   }
   const base: SectionEntry[] = parsed ?? FIXED_SECTION_IDS.map((id) => ({ id, visible: true }));
   const existing = new Set(base.map((e) => e.id));
+  for (const id of FIXED_SECTION_IDS) {
+    if (!existing.has(id)) base.push({ id, visible: true });
+  }
   for (const s of custom) {
     const id = `sec:${s.id}`;
     if (!existing.has(id)) base.push({ id, visible: true });

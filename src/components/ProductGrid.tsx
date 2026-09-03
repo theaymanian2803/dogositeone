@@ -4,6 +4,7 @@ import { turso } from "@/integrations/turso/client";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
 import { formatPrice } from "@/lib/currency";
+import { useI18n } from "@/lib/i18n";
 import { ShoppingBag } from "lucide-react";
 
 type Product = {
@@ -19,6 +20,7 @@ type Product = {
 export function ProductGrid() {
   const [products, setProducts] = useState<Product[]>([]);
   const { add } = useCart();
+  const { t } = useI18n();
 
   useEffect(() => {
     turso
@@ -29,11 +31,11 @@ export function ProductGrid() {
   }, []);
 
   return (
-    <section className="mx-auto max-w-7xl px-6 pb-20">
+    <section className="mx-auto max-w-7xl px-6 py-20">
       <div className="text-center">
-        <h2 className="text-4xl md:text-5xl">Our Best Products</h2>
+        <h2 className="text-4xl md:text-5xl">{t("products.title")}</h2>
         <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground">
-          Hand-picked favorites loved by pets and their people — fresh from the shop.
+          {t("products.subtitle")}
         </p>
       </div>
       <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
@@ -77,7 +79,7 @@ export function ProductGrid() {
               }}
               className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent py-2 text-xs font-semibold text-white hover:opacity-90"
             >
-              <ShoppingBag className="h-3.5 w-3.5" /> Add to Cart
+              <ShoppingBag className="h-3.5 w-3.5" /> {t("products.add")}
             </button>
           </div>
         ))}

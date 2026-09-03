@@ -8,12 +8,16 @@ import { useSettings } from "@/hooks/useSettings";
 import { turso } from "@/integrations/turso/client";
 import { toast } from "sonner";
 import { formatPrice } from "@/lib/currency";
+import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE, shippingFor } from "@/lib/shipping";
+import { waLinkFrom } from "@/lib/whatsapp";
+import { useI18n } from "@/lib/i18n";
 import { Package, User, ArrowRight, MessageCircle } from "lucide-react";
 
 export default function Checkout() {
   const { items, subtotal, clear } = useCart();
   const { user, loading } = useUserAuth();
   const { settings } = useSettings();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [placing, setPlacing] = useState(false);
   const [guestCheckout, setGuestCheckout] = useState(() => {
@@ -29,7 +33,10 @@ export default function Checkout() {
     phone: "",
     address: "",
   });
-  const shipping = subtotal > 500 || subtotal === 0 ? 0 : 50;
+  const shipping = shippingFor(subtotal, {
+    threshold: Number(settings.free_shipping_threshold) || FREE_SHIPPING_THRESHOLD,
+    fee: Number(settings.shipping_fee) || SHIPPING_FEE,
+  });
   const total = subtotal + shipping;
 
   useEffect(() => {
@@ -65,11 +72,7 @@ export default function Checkout() {
         {items.map((i) => (
           <li key={i.id} className="flex items-center gap-3">
             <div className="h-10 w-10 shrink-0 overflow-hidden bg-background border border-border">
-              <img
-                src={i.image_url}
-                alt={i.name}
-                className="h-full w-full object-contain p-0.5"
-              />
+              <img src={i.image_url} alt={i.name} className="h-full w-full object-contain p-0.5" />
             </div>
             <div className="flex-1 min-w-0 text-sm">
               <p className="font-medium text-foreground truncate">{i.name}</p>
@@ -83,21 +86,21 @@ export default function Checkout() {
       </ul>
       <dl className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
         <div className="flex justify-between text-muted-foreground">
-          <dt>Subtotal</dt>
+          <dt>{t("checkout.subtotal")}</dt>
           <dd>{formatPrice(subtotal)}</dd>
         </div>
         <div className="flex justify-between text-muted-foreground">
-          <dt>Shipping</dt>
+          <dt>{t("checkout.shipping")}</dt>
           <dd>
             {shipping === 0 ? (
-              <span className="text-emerald-600">Free</span>
+              <span className="text-emerald-600">{t("checkout.free")}</span>
             ) : (
               formatPrice(shipping)
             )}
           </dd>
         </div>
         <div className="flex justify-between border-t border-border pt-2 text-base font-semibold text-foreground">
-          <dt>Total</dt>
+          <dt>{t("checkout.total")}</dt>
           <dd>{formatPrice(total)}</dd>
         </div>
       </dl>
@@ -107,7 +110,7 @@ export default function Checkout() {
   const orderAside = (
     <aside className="h-fit border border-border">
       <div className="px-6 py-4 border-b border-border">
-        <h2 className="text-base font-semibold">Your order</h2>
+        <h2 className="text-base font-semibold">{t("checkout.yourOrder")}</h2>
       </div>
       <div className="px-6 py-5">{orderSummaryBody}</div>
     </aside>
@@ -139,9 +142,13 @@ export default function Checkout() {
         ],
       });
       clear();
-      try { localStorage.setItem("petpals_last_phone", form.phone.trim()); } catch { /* */ }
+      try {
+        localStorage.setItem("petpals_last_phone", form.phone.trim());
+      } catch {
+        /* */
+      }
       toast.success("Order placed!", { description: "We'll contact you shortly to confirm." });
-      navigate("/");
+      navigate(`/order-confirmed?phone=${encodeURIComponent(form.phone.trim())}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error placing order");
     } finally {
@@ -168,33 +175,26 @@ export default function Checkout() {
       "",
       "Our team will get back to you as soon as possible to confirm your order.",
     ];
-    const number = settings.whatsapp_number.replace(/[^0-9]/g, "");
-    if (!number) {
+    const link = waLinkFrom(settings.whatsapp_number, lines.join("\n"));
+    if (!link) {
       toast.error("WhatsApp number is not configured");
       return;
     }
-    const waNumber = number.startsWith("0")
-      ? `212${number.replace(/^0/, "")}`
-      : number;
-    window.open(
-      `https://wa.me/${waNumber}?text=${encodeURIComponent(lines.join("\n"))}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    window.open(link, "_blank", "noopener,noreferrer");
   };
 
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-6 py-12">
-        <h1 className="text-3xl font-bold tracking-tight">Checkout</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("checkout.title")}</h1>
 
         {items.length === 0 ? (
           <div className="mt-16 text-center">
             <Package className="mx-auto h-10 w-10 text-muted-foreground/40" />
-            <p className="mt-3 text-sm text-muted-foreground">Your cart is empty.</p>
+            <p className="mt-3 text-sm text-muted-foreground">{t("checkout.empty")}</p>
             <Link to="/" className="mt-4 inline-block text-sm text-accent hover:underline">
-              ← Back to store
+              ← {t("checkout.back")}
             </Link>
           </div>
         ) : loading ? (
@@ -204,7 +204,7 @@ export default function Checkout() {
             <div className="lg:col-span-2">
               <div className="border border-border">
                 <div className="px-6 py-4 border-b border-border">
-                  <h2 className="text-base font-semibold">Checkout</h2>
+                  <h2 className="text-base font-semibold">{t("checkout.title")}</h2>
                 </div>
                 <div className="px-6 py-8">
                   <div className="flex items-start gap-3">
@@ -212,10 +212,9 @@ export default function Checkout() {
                       <User className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold">Have an account?</h3>
+                      <h3 className="font-semibold">{t("checkout.haveAccount")}</h3>
                       <p className="text-sm text-muted-foreground">
-                        Sign in for a faster checkout and order tracking. Prefer not to? That's
-                        fine — you can check out as a guest.
+                        {t("checkout.signIn")}. {t("checkout.guest")}.
                       </p>
                     </div>
                   </div>
@@ -223,17 +222,17 @@ export default function Checkout() {
                     to="/login?redirect=/checkout"
                     className="mt-6 flex w-full items-center justify-center gap-2 border border-accent bg-accent py-3 text-sm font-semibold text-white hover:opacity-90 transition-all active:scale-[0.98]"
                   >
-                    Sign in to checkout
+                    {t("checkout.signIn")}
                   </Link>
                   <div className="my-6 flex items-center gap-4 text-xs uppercase tracking-wider text-muted-foreground">
-                    <span className="h-px flex-1 bg-border" /> or
+                    <span className="h-px flex-1 bg-border" /> {t("checkout.or")}
                     <span className="h-px flex-1 bg-border" />
                   </div>
                   <button
                     onClick={continueAsGuest}
                     className="flex w-full items-center justify-center gap-2 border border-border py-3 text-sm font-semibold hover:bg-secondary transition-colors"
                   >
-                    Continue as guest <ArrowRight className="h-4 w-4" />
+                    {t("checkout.guest")} <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -246,30 +245,32 @@ export default function Checkout() {
               {user && (
                 <div className="mb-4 flex items-center justify-between border border-border px-4 py-3 text-sm">
                   <span className="flex items-center gap-2 text-muted-foreground">
-                    <User className="h-4 w-4" /> Signed in as{" "}
+                    <User className="h-4 w-4" /> {t("checkout.signedInAs")}{" "}
                     <span className="font-medium text-foreground">{user.name}</span>
                   </span>
                   <Link to="/login?redirect=/checkout" className="text-accent hover:underline">
-                    Switch account
+                    {t("checkout.switch")}
                   </Link>
                 </div>
               )}
               {!user && guestCheckout && (
                 <div className="mb-4 flex items-center justify-between border border-border px-4 py-3 text-sm">
-                  <span className="text-muted-foreground">Checking out as a guest</span>
+                  <span className="text-muted-foreground">{t("checkout.guestAs")}</span>
                   <Link to="/login?redirect=/checkout" className="text-accent hover:underline">
-                    Sign in instead
+                    {t("checkout.signInInstead")}
                   </Link>
                 </div>
               )}
               <div className="border border-border">
                 <div className="px-6 py-4 border-b border-border">
-                  <h2 className="text-base font-semibold">Your details</h2>
+                  <h2 className="text-base font-semibold">{t("checkout.yourDetails")}</h2>
                 </div>
                 <div className="px-6 py-5">
                   <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">First name</label>
+                      <label className="text-xs font-medium text-muted-foreground">
+                        {t("checkout.firstName")}
+                      </label>
                       <input
                         required
                         maxLength={100}
@@ -280,7 +281,9 @@ export default function Checkout() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">Last name</label>
+                      <label className="text-xs font-medium text-muted-foreground">
+                        {t("checkout.lastName")}
+                      </label>
                       <input
                         required
                         maxLength={100}
@@ -291,7 +294,9 @@ export default function Checkout() {
                       />
                     </div>
                     <div className="space-y-1.5 sm:col-span-2">
-                      <label className="text-xs font-medium text-muted-foreground">Phone number</label>
+                      <label className="text-xs font-medium text-muted-foreground">
+                        {t("checkout.phone")}
+                      </label>
                       <input
                         required
                         maxLength={30}
@@ -303,7 +308,9 @@ export default function Checkout() {
                       />
                     </div>
                     <div className="space-y-1.5 sm:col-span-2">
-                      <label className="text-xs font-medium text-muted-foreground">Shipping address</label>
+                      <label className="text-xs font-medium text-muted-foreground">
+                        {t("checkout.address")}
+                      </label>
                       <textarea
                         required
                         maxLength={500}
@@ -316,7 +323,7 @@ export default function Checkout() {
                     </div>
                   </div>
                   <p className="mt-5 text-xs text-muted-foreground">
-                    No payment required — you'll pay on delivery.
+                    {t("checkout.payOnDelivery")}
                   </p>
                 </div>
               </div>
@@ -324,7 +331,7 @@ export default function Checkout() {
 
             <aside className="h-fit border border-border">
               <div className="px-6 py-4 border-b border-border">
-                <h2 className="text-base font-semibold">Your order</h2>
+                <h2 className="text-base font-semibold">{t("checkout.yourOrder")}</h2>
               </div>
               <div className="px-6 py-5">
                 {orderSummaryBody}
@@ -333,17 +340,17 @@ export default function Checkout() {
                   disabled={placing}
                   className="mt-5 w-full border border-accent bg-accent py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-all active:scale-[0.98]"
                 >
-                  {placing ? "Placing order…" : "Place order"}
+                  {placing ? t("checkout.placing") : t("checkout.place")}
                 </button>
                 <button
                   type="button"
                   onClick={orderViaWhatsApp}
                   className="mt-2 flex w-full items-center justify-center gap-2 border border-emerald-600 bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-all active:scale-[0.98]"
                 >
-                  <MessageCircle className="h-4 w-4" /> Order via WhatsApp
+                  <MessageCircle className="h-4 w-4" /> {t("checkout.whatsapp")}
                 </button>
                 <p className="mt-3 text-center text-xs text-muted-foreground">
-                  Pay on delivery. Our team will call to confirm your order.
+                  {t("checkout.payOnDelivery")}
                 </p>
               </div>
             </aside>

@@ -19,8 +19,14 @@ export const defaultSettings = {
   promo_old_price: "600 MAD",
   promo_price: "400 MAD",
   hero_image: "",
+  free_shipping_threshold: "500",
+  shipping_fee: "50",
+  delivery_note: "Delivery within 24h — pay on delivery",
+  instagram_url: "",
+  facebook_url: "",
+  tiktok_url: "",
   homepage_sections:
-    '[{"id":"hero","visible":true},{"id":"categories","visible":true},{"id":"products","visible":true},{"id":"promo","visible":true},{"id":"best","visible":true}]',
+    '[{"id":"hero","visible":true},{"id":"categories","visible":true},{"id":"products","visible":true},{"id":"promo","visible":true},{"id":"best","visible":true},{"id":"reviews","visible":true}]',
 } as const;
 
 export type Settings = { [K in keyof typeof defaultSettings]: string };

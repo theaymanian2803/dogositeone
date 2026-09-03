@@ -20,7 +20,7 @@ export function SectionGrid({ section }: { section: Section }) {
           {section.subtitle}
         </p>
       )}
-      <div className={`mt-8 grid grid-cols-1 gap-4 ${cols}`}>
+      <div className={`mt-12 grid grid-cols-1 gap-4 ${cols}`}>
         {items.map((g, i) => (
           <Link
             key={i}

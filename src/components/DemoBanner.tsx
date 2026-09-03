@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { Database, X } from "lucide-react";
 import { dismissSetupBanner, shouldShowSetupBanner } from "@/lib/tursoConfig";
+import { useOpenSettingsDialog } from "@/lib/settingsDialog";
 
 export function DemoBanner() {
   const [visible, setVisible] = useState(shouldShowSetupBanner());
+  const openSettings = useOpenSettingsDialog();
 
   if (!visible) return null;
 
@@ -16,12 +17,13 @@ export function DemoBanner() {
           This store is running on a shared demo database. Connect your own database to keep your
           data private.
         </span>
-        <Link
-          to="/admin?tab=settings"
+        <button
+          data-tour="connect-button"
+          onClick={openSettings}
           className="shrink-0 inline-flex h-8 items-center rounded-full bg-accent px-4 text-xs font-semibold text-accent-foreground transition-all hover:opacity-90 active:scale-[0.98]"
         >
           Connect
-        </Link>
+        </button>
         <button
           onClick={() => {
             dismissSetupBanner();

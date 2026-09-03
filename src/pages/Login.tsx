@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useUserAuth } from "@/hooks/useUserAuth";
+import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 
 export default function Login() {
   const { login, user } = useUserAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectParam = searchParams.get("redirect");
@@ -45,13 +47,13 @@ export default function Login() {
           <Link to="/" className="text-sm text-muted-foreground hover:text-accent">
             ← Back to store
           </Link>
-          <h1 className="mt-4 text-3xl font-bold">Sign in</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sign in to track your orders.</p>
+          <h1 className="mt-4 text-3xl font-bold">{t("login.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("login.subtitle")}</p>
           <form onSubmit={submit} className="mt-6 space-y-4">
             <input
               type="email"
               required
-              placeholder="Email"
+              placeholder={t("login.email")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-11 w-full rounded-lg border border-border bg-background px-4 outline-none focus:border-accent"
@@ -59,7 +61,7 @@ export default function Login() {
             <input
               type="password"
               required
-              placeholder="Password"
+              placeholder={t("login.password")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-11 w-full rounded-lg border border-border bg-background px-4 outline-none focus:border-accent"
@@ -68,13 +70,13 @@ export default function Login() {
               disabled={loading}
               className="h-11 w-full rounded-lg bg-accent font-semibold text-white disabled:opacity-50"
             >
-              {loading ? "..." : "Sign in"}
+              {loading ? "..." : t("login.submit")}
             </button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            No account?{" "}
+            {t("login.noAccount")}{" "}
             <Link to="/register" className="text-accent hover:underline">
-              Create one
+              {t("login.create")}
             </Link>
           </p>
         </div>

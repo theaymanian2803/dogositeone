@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { turso } from "@/integrations/turso/client";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
 import { formatPrice } from "@/lib/currency";
+import { useI18n } from "@/lib/i18n";
 import { ShoppingBag } from "lucide-react";
 
 type Product = {
@@ -19,6 +20,7 @@ type Product = {
 };
 
 export default function Category() {
+  const { t } = useI18n();
   const { category = "" } = useParams<{ category: string }>();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +28,7 @@ export default function Category() {
 
   useEffect(() => {
     const title = category ? category[0].toUpperCase() + category.slice(1) : "Category";
-    document.title = `${title} — PetPals`;
+    document.title = `${title} â€” PetPals`;
   }, [category]);
 
   useEffect(() => {
@@ -46,9 +48,9 @@ export default function Category() {
   const title = category ? category[0].toUpperCase() + category.slice(1) : "";
   const subtitle =
     category === "dogs"
-      ? "Everything your best friend needs — food, beds, toys and more."
+      ? "Everything your best friend needs â€” food, beds, toys and more."
       : category === "cats"
-        ? "Curated essentials for your feline — from cozy beds to playful toys."
+        ? "Curated essentials for your feline â€” from cozy beds to playful toys."
         : `Browse our ${category} collection.`;
 
   return (
@@ -69,11 +71,9 @@ export default function Category() {
         </header>
 
         {loading ? (
-          <p className="py-20 text-center text-muted-foreground">Loading…</p>
+          <p className="py-20 text-center text-muted-foreground">Loadingâ€¦</p>
         ) : products.length === 0 ? (
-          <p className="py-20 text-center text-muted-foreground">
-            No products yet in this category.
-          </p>
+          <p className="py-20 text-center text-muted-foreground">{t("category.empty")}</p>
         ) : (
           <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
             {products.map((p) => (
@@ -94,9 +94,7 @@ export default function Category() {
                   </div>
                   <div className="mt-4 text-center">
                     <h3 className="text-sm font-semibold">{p.name}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {formatPrice(p.price)}
-                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">{formatPrice(p.price)}</p>
                     {p.tag && (
                       <span className="mt-2 inline-block rounded-full border border-border px-3 py-0.5 text-xs">
                         {p.tag}
@@ -117,7 +115,7 @@ export default function Category() {
                   }}
                   className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent py-2 text-xs font-semibold text-white hover:opacity-90"
                 >
-                  <ShoppingBag className="h-3.5 w-3.5" /> Add to Cart
+                  <ShoppingBag className="h-3.5 w-3.5" /> {t("products.add")}
                 </button>
               </div>
             ))}

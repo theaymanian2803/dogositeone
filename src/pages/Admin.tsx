@@ -3,7 +3,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSettings, type Settings as StoreSettings } from "@/hooks/useSettings";
 import { sampleCategories, sampleProducts } from "@/lib/sampleData";
 import { turso, resetTursoClient } from "@/integrations/turso/client";
-import { ADMIN_EMAIL } from "@/lib/admin";
 import { formatPrice } from "@/lib/currency";
 import { clearTursoConfig, isUsingCustomConfig } from "@/lib/tursoConfig";
 import { TursoSettingsDialog } from "@/components/TursoSettingsDialog";
@@ -20,6 +19,7 @@ import {
   Hash,
   KeyRound,
   Layers,
+  Lock,
   LogOut,
   MapPin,
   Menu,
@@ -40,7 +40,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 type Product = {
@@ -134,6 +134,12 @@ const settingsLabels: Record<keyof StoreSettings, string> = {
   promo_old_price: "Promo old price",
   promo_price: "Promo price",
   hero_image: "Hero image URL",
+  free_shipping_threshold: "Free delivery threshold (MAD)",
+  shipping_fee: "Delivery fee (MAD)",
+  delivery_note: "Delivery note (trust bar)",
+  instagram_url: "Instagram URL",
+  facebook_url: "Facebook URL",
+  tiktok_url: "TikTok URL",
   homepage_sections: "Homepage sections",
   contact_email: "Contact email",
   contact_phone: "Contact phone",
@@ -157,6 +163,10 @@ const settingsGroups: { title: string; fields: (keyof StoreSettings)[] }[] = [
     ],
   },
   {
+    title: "Delivery",
+    fields: ["free_shipping_threshold", "shipping_fee", "delivery_note"],
+  },
+  {
     title: "Contact info",
     fields: [
       "contact_email",
@@ -164,6 +174,9 @@ const settingsGroups: { title: string; fields: (keyof StoreSettings)[] }[] = [
       "whatsapp_number",
       "contact_address",
       "support_hours",
+      "instagram_url",
+      "facebook_url",
+      "tiktok_url",
     ],
   },
 ];
@@ -228,6 +241,15 @@ export default function Admin() {
       : "orders";
   })();
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [searchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  useEffect(() => {
+    if (
+      ["products", "categories", "orders", "reviews", "settings", "data"].includes(urlTab as Tab)
+    ) {
+      setTab(urlTab as Tab);
+    }
+  }, [urlTab]);
   const [tursoOpen, setTursoOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -252,11 +274,11 @@ export default function Admin() {
   const { settings, refresh: refreshSettings } = useSettings();
   const [settingsForm, setSettingsForm] = useState<StoreSettings>(settings);
   const [savingSettings, setSavingSettings] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({ current: "", next: "", confirm: "" });
-  const [changingPassword, setChangingPassword] = useState(false);
+  const [credsForm, setCredsForm] = useState({ email: "", current: "", next: "", confirm: "" });
+  const [changingCreds, setChangingCreds] = useState(false);
   const [dataBusy, setDataBusy] = useState(false);
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = !!user;
   const usingCustom = isUsingCustomConfig();
 
   useEffect(() => {
@@ -451,11 +473,7 @@ export default function Admin() {
           </div>
           <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">Not authorized</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Only{" "}
-            <code className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">
-              {ADMIN_EMAIL}
-            </code>{" "}
-            can access the admin panel. You are signed in as {user.email}.
+            Your session is not tied to an admin account. Please sign in again.
           </p>
           <button
             onClick={() => {
@@ -725,37 +743,65 @@ export default function Admin() {
     }
   }
 
-  async function changePassword(e: React.FormEvent) {
+  async function changeCredentials(e: React.FormEvent) {
     e.preventDefault();
-    if (!passwordForm.next || passwordForm.next !== passwordForm.confirm) {
-      toast.error("New passwords don't match");
-      return;
-    }
-    if (passwordForm.next.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-    setChangingPassword(true);
+    const newEmail = credsForm.email.trim();
     const adminEmail = user?.email ?? "";
+    const hasEmail = newEmail && newEmail !== adminEmail;
+    const hasPassword = credsForm.next.length > 0;
+    if (!hasEmail && !hasPassword) {
+      toast.error("Enter a new email or a new password");
+      return;
+    }
+    if (hasEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      toast.error("Enter a valid email address");
+      return;
+    }
+    if (hasPassword) {
+      if (credsForm.next !== credsForm.confirm) {
+        toast.error("New passwords don't match");
+        return;
+      }
+      if (credsForm.next.length < 6) {
+        toast.error("Password must be at least 6 characters");
+        return;
+      }
+    }
+    setChangingCreds(true);
     try {
       const rs = await turso.execute({
         sql: "SELECT email FROM admins WHERE email = ? AND password = ?",
-        args: [adminEmail, passwordForm.current],
+        args: [adminEmail, credsForm.current],
       });
       if (rs.rows.length === 0) {
         toast.error("Current password is incorrect");
         return;
       }
-      await turso.execute({
-        sql: "UPDATE admins SET password = ? WHERE email = ?",
-        args: [passwordForm.next, adminEmail],
-      });
-      toast.success("Password updated");
-      setPasswordForm({ current: "", next: "", confirm: "" });
+      if (hasPassword) {
+        await turso.execute({
+          sql: "UPDATE admins SET password = ? WHERE email = ?",
+          args: [credsForm.next, adminEmail],
+        });
+      }
+      if (hasEmail) {
+        await turso.execute({
+          sql: "UPDATE admins SET email = ? WHERE email = ?",
+          args: [newEmail, adminEmail],
+        });
+      }
+      localStorage.setItem("session", JSON.stringify({ email: hasEmail ? newEmail : adminEmail }));
+      toast.success(
+        hasEmail && hasPassword
+          ? "Admin login and password updated"
+          : hasEmail
+            ? "Admin login updated"
+            : "Password updated",
+      );
+      setCredsForm({ email: "", current: "", next: "", confirm: "" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error updating password");
+      toast.error(err instanceof Error ? err.message : "Error updating credentials");
     } finally {
-      setChangingPassword(false);
+      setChangingCreds(false);
     }
   }
 
@@ -912,10 +958,11 @@ export default function Admin() {
           </div>
 
           {/* Nav */}
-          <nav className="flex-1 px-3 py-4 space-y-1">
+          <nav data-tour="admin-dashboard" className="flex-1 px-3 py-4 space-y-1">
             {navItems.map((item) => (
               <button
                 key={item.key}
+                data-tour={item.key === "settings" ? "nav-settings" : undefined}
                 onClick={() => {
                   setTab(item.key);
                   setSidebarOpen(false);
@@ -1674,7 +1721,10 @@ export default function Admin() {
 
                 <ControlsManager />
 
-                <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <section
+                  data-tour="admin-db"
+                  className="rounded-2xl border border-border bg-card p-6 shadow-sm"
+                >
                   <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
                     Database connection
                   </h3>
@@ -1713,50 +1763,65 @@ export default function Admin() {
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <section
+                  data-tour="admin-creds"
+                  className="rounded-2xl border border-border bg-card p-6 shadow-sm"
+                >
                   <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                    Change admin password
+                    Admin credentials
                   </h3>
                   <p className="mt-1.5 text-xs text-muted-foreground">
-                    You'll need your current password to make this change.
+                    Change the login email and/or password used to access this dashboard. You'll
+                    need your current password to make a change.
                   </p>
-                  <form onSubmit={changePassword} className="mt-4 space-y-3">
-                    <input
-                      type="password"
-                      required
-                      placeholder="Current password"
-                      value={passwordForm.current}
-                      onChange={(e) =>
-                        setPasswordForm({ ...passwordForm, current: e.target.value })
-                      }
-                      className={inputClass}
-                    />
-                    <input
-                      type="password"
-                      required
-                      placeholder="New password"
-                      value={passwordForm.next}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, next: e.target.value })}
-                      className={inputClass}
-                    />
-                    <input
-                      type="password"
-                      required
-                      placeholder="Confirm new password"
-                      value={passwordForm.confirm}
-                      onChange={(e) =>
-                        setPasswordForm({ ...passwordForm, confirm: e.target.value })
-                      }
-                      className={inputClass}
-                    />
-                    <button
-                      disabled={changingPassword}
-                      className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-background px-5 text-sm font-semibold text-foreground transition-all hover:bg-secondary active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
-                    >
-                      <KeyRound className="h-4 w-4" />
-                      {changingPassword ? "Updating…" : "Update password"}
-                    </button>
-                  </form>
+                  {usingCustom ? (
+                    <form onSubmit={changeCredentials} className="mt-4 space-y-3">
+                      <input
+                        type="email"
+                        placeholder="New email (optional)"
+                        value={credsForm.email}
+                        onChange={(e) => setCredsForm({ ...credsForm, email: e.target.value })}
+                        className={inputClass}
+                      />
+                      <input
+                        type="password"
+                        required
+                        placeholder="Current password"
+                        value={credsForm.current}
+                        onChange={(e) => setCredsForm({ ...credsForm, current: e.target.value })}
+                        className={inputClass}
+                      />
+                      <input
+                        type="password"
+                        placeholder="New password (optional)"
+                        value={credsForm.next}
+                        onChange={(e) => setCredsForm({ ...credsForm, next: e.target.value })}
+                        className={inputClass}
+                      />
+                      <input
+                        type="password"
+                        placeholder="Confirm new password"
+                        value={credsForm.confirm}
+                        onChange={(e) => setCredsForm({ ...credsForm, confirm: e.target.value })}
+                        className={inputClass}
+                      />
+                      <button
+                        disabled={changingCreds}
+                        className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-background px-5 text-sm font-semibold text-foreground transition-all hover:bg-secondary active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        <KeyRound className="h-4 w-4" />
+                        {changingCreds ? "Updating…" : "Update credentials"}
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="mt-4 flex items-start gap-2 rounded-2xl border border-border bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
+                      <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        Connect your own database first — the admin credentials can only be changed
+                        on your own instance.
+                      </span>
+                    </div>
+                  )}
                 </section>
               </div>
             )}

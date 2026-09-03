@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useI18n } from "@/lib/i18n";
 import biscuit from "@/assets/product-biscuit.jpg";
 import bed from "@/assets/product-bed.jpg";
 import food from "@/assets/product-food.jpg";
@@ -14,18 +15,21 @@ const items = [
   },
   { name: "Ultra Soft Puppy Bed", price: "155.00 MAD", img: bed, to: "/category/bed" },
   { name: "Sea Fish Dry Cat Food", price: "120.00 MAD", img: food, to: "/category/foods" },
-  { name: "Soft Pined Pet's Grooming Brush", price: "120.00 MAD", img: groom, to: "/category/groom" },
+  {
+    name: "Soft Pined Pet's Grooming Brush",
+    price: "120.00 MAD",
+    img: groom,
+    to: "/category/groom",
+  },
 ];
 
 export function BestProducts() {
+  const { t } = useI18n();
   return (
     <section className="mx-auto max-w-7xl px-6 py-20">
       <div className="text-center">
-        <h2 className="text-4xl md:text-5xl">The Best Pet Products</h2>
-        <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground">
-          Hand-picked essentials your pet will love — from nourishing meals to cozy beds and
-          grooming must-haves, curated for happy, healthy companions.
-        </p>
+        <h2 className="text-4xl md:text-5xl">{t("best.title")}</h2>
+        <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground">{t("best.subtitle")}</p>
       </div>
 
       <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-4">

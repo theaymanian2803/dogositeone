@@ -37,7 +37,10 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen grid place-items-center bg-background px-4">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8">
+      <div
+        className="w-full max-w-md rounded-2xl border border-border bg-card p-8"
+        data-tour="admin-signin"
+      >
         <Link to="/" className="text-sm text-muted-foreground hover:text-accent">
           ← Back to store
         </Link>
@@ -69,6 +72,11 @@ export default function Auth() {
             {loading ? "..." : mode === "signin" ? "Sign in" : "Sign up"}
           </button>
         </form>
+        <p className="mt-4 text-center font-mono text-xs text-muted-foreground">
+          {mode === "signin"
+            ? "Demo admin: admin@gmail.com / admin123"
+            : "Create a demo account to manage your store"}
+        </p>
         <button
           onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
           className="mt-4 w-full text-sm text-muted-foreground hover:text-accent"

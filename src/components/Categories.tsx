@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useI18n } from "@/lib/i18n";
 import groom from "@/assets/product-groom.jpg";
 import collar from "@/assets/product-collar.jpg";
 import bed from "@/assets/product-bed.jpg";
@@ -14,9 +15,10 @@ const items = [
 ];
 
 export function Categories() {
+  const { t } = useI18n();
   return (
     <section className="mx-auto max-w-7xl px-6 py-20">
-      <h2 className="text-center text-4xl md:text-5xl">Pets Products</h2>
+      <h2 className="text-center text-4xl md:text-5xl">{t("categories.title")}</h2>
       <div className="mt-14 grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5">
         {items.map((it) => (
           <Link key={it.name} to={it.to} className="group flex flex-col items-center text-center">

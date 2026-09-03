@@ -3,9 +3,11 @@ import promo from "@/assets/promo-pets.jpg";
 import food from "@/assets/product-food.jpg";
 import { Star } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
+import { useI18n } from "@/lib/i18n";
 
 export function PromoBanner() {
   const { settings } = useSettings();
+  const { t } = useI18n();
   return (
     <section className="relative overflow-hidden bg-promo">
       <img
@@ -35,11 +37,13 @@ export function PromoBanner() {
               ))}
             </div>
             <p className="mt-3">
-              <span className="text-sm text-muted-foreground line-through">{settings.promo_old_price}</span>
+              <span className="text-sm text-muted-foreground line-through">
+                {settings.promo_old_price}
+              </span>
               <span className="ml-2 text-2xl font-bold">{settings.promo_price} Only</span>
             </p>
             <Link to="/category/foods" className="btn-dark mt-5 inline-flex">
-              Shop Food
+              {t("promo.shop")}
             </Link>
           </div>
         </div>

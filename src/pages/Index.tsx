@@ -3,6 +3,7 @@ import { Categories } from "@/components/Categories";
 import { Hero } from "@/components/Hero";
 import { ProductGrid } from "@/components/ProductGrid";
 import { PromoBanner } from "@/components/PromoBanner";
+import { ReviewsSection } from "@/components/ReviewsSection";
 import { SectionBanner } from "@/components/SectionBanner";
 import { SectionGrid } from "@/components/SectionGrid";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -40,6 +41,8 @@ export default function Index() {
               return <PromoBanner key="promo" />;
             case "best":
               return <BestProducts key="best" />;
+            case "reviews":
+              return <ReviewsSection key="reviews" />;
             default:
               return null;
           }

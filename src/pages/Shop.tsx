@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { turso } from "@/integrations/turso/client";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -6,7 +6,15 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
 import { formatPrice } from "@/lib/currency";
-import { ShoppingBag, SlidersHorizontal, X, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import {
+  ShoppingBag,
+  SlidersHorizontal,
+  X,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 type Product = {
   id: string;
@@ -25,6 +33,7 @@ type Category = { id: string; name: string; slug: string };
 const PAGE_SIZE = 15;
 
 export default function Shop() {
+  const { t } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -41,7 +50,7 @@ export default function Shop() {
   const { add } = useCart();
 
   useEffect(() => {
-    document.title = "Shop — PetPals";
+    document.title = "Shop â€” PetPals";
   }, []);
 
   useEffect(() => {
@@ -139,17 +148,15 @@ export default function Shop() {
       <main className="mx-auto max-w-7xl px-6 py-12">
         <nav className="mb-6 text-sm text-muted-foreground">
           <Link to="/" className="hover:text-accent">
-            Home
+            {t("nav.home")}
           </Link>
           <span className="mx-2">/</span>
-          <span className="text-foreground">Shop</span>
+          <span className="text-foreground">{t("nav.shop")}</span>
         </nav>
 
         <header className="mb-10 text-center">
-          <h1 className="text-4xl font-bold md:text-5xl">Shop</h1>
-          <p className="mt-3 text-muted-foreground">
-            Browse all our premium products for your pets.
-          </p>
+          <h1 className="text-4xl font-bold md:text-5xl">{t("nav.shop")}</h1>
+          <p className="mt-3 text-muted-foreground">{t("shop.subtitle")}</p>
         </header>
 
         <div className="mb-8 flex items-center gap-4">
@@ -158,7 +165,7 @@ export default function Shop() {
             className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium lg:hidden"
           >
             <SlidersHorizontal className="h-4 w-4" />
-            Filters
+            {t("shop.filters")}
             {activeFilterCount > 0 && (
               <span className="grid h-5 w-5 place-items-center rounded-full bg-accent text-[10px] text-white">
                 {activeFilterCount}
@@ -167,29 +174,31 @@ export default function Shop() {
           </button>
 
           <div className="ml-auto flex items-center gap-2">
-            <label className="text-sm text-muted-foreground hidden sm:inline">Sort by</label>
+            <label className="text-sm text-muted-foreground hidden sm:inline">
+              {t("shop.sortBy")}
+            </label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
               className="h-10 rounded-full border border-border bg-card px-4 text-sm outline-none focus:border-accent"
             >
-              <option value="newest">Newest</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
-              <option value="name-asc">Name: A-Z</option>
+              <option value="newest">{t("shop.sortNewest")}</option>
+              <option value="price-asc">{t("shop.sortPriceAsc")}</option>
+              <option value="price-desc">{t("shop.sortPriceDesc")}</option>
+              <option value="name-asc">{t("shop.sortNameAsc")}</option>
             </select>
           </div>
         </div>
 
         {query.trim() && (
           <div className="mb-8 flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm">
-            <span className="text-muted-foreground">Search results for</span>
-            <span className="font-semibold">“{query.trim()}”</span>
+            <span className="text-muted-foreground">{t("shop.resultsFor")}</span>
+            <span className="font-semibold">â€œ{query.trim()}â€</span>
             <button
               onClick={clearSearch}
               className="ml-auto inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-foreground hover:bg-secondary/70"
             >
-              <X className="h-3 w-3" /> Clear search
+              <X className="h-3 w-3" /> {t("shop.clearSearch")}
             </button>
           </div>
         )}
@@ -203,7 +212,7 @@ export default function Shop() {
                 onClick={clearFilters}
                 className="flex items-center gap-1 text-sm text-accent hover:underline"
               >
-                <X className="h-3.5 w-3.5" /> Clear all filters
+                <X className="h-3.5 w-3.5" /> {t("shop.clearFilters")}
               </button>
             )}
 
@@ -212,7 +221,7 @@ export default function Shop() {
                 onClick={() => setMobileFiltersOpen(false)}
                 className="mb-3 flex w-full items-center justify-between text-left lg:cursor-default"
               >
-                <h3 className="font-bold">Categories</h3>
+                <h3 className="font-bold">{t("nav.categories")}</h3>
                 <ChevronUp className="h-4 w-4 lg:hidden" />
               </button>
               <div className="space-y-2">
@@ -231,7 +240,7 @@ export default function Shop() {
                   </label>
                 ))}
                 {categories.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No categories.</p>
+                  <p className="text-sm text-muted-foreground">{t("shop.noCategories")}</p>
                 )}
               </div>
             </div>
@@ -250,7 +259,7 @@ export default function Shop() {
               </div>
             ) : filtered.length === 0 ? (
               <div className="py-20 text-center">
-                <p className="text-lg font-semibold">No products found</p>
+                <p className="text-lg font-semibold">{t("shop.noProducts")}</p>
                 <p className="mt-1 text-muted-foreground">
                   Try adjusting your filters or search query.
                 </p>
@@ -258,7 +267,7 @@ export default function Shop() {
                   onClick={clearFilters}
                   className="mt-4 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-2 text-sm font-semibold text-white hover:opacity-90"
                 >
-                  Clear Filters
+                  {t("shop.clearFilters")}
                 </button>
               </div>
             ) : (
@@ -308,7 +317,7 @@ export default function Shop() {
                         }}
                         className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent py-2 text-xs font-semibold text-white hover:opacity-90"
                       >
-                        <ShoppingBag className="h-3.5 w-3.5" /> Add to Cart
+                        <ShoppingBag className="h-3.5 w-3.5" /> {t("products.add")}
                       </button>
                     </div>
                   ))}
@@ -319,7 +328,7 @@ export default function Shop() {
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
                       className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-sm hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label="Previous page"
+                      aria-label={t("shop.prev")}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </button>
@@ -341,7 +350,7 @@ export default function Shop() {
                       onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
                       className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-sm hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label="Next page"
+                      aria-label={t("shop.next")}
                     >
                       <ChevronRight className="h-4 w-4" />
                     </button>

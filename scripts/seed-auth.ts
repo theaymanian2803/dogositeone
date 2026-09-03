@@ -72,6 +72,45 @@ async function seed() {
     console.log(`  - Admin already exists: ${adminEmail}`);
   }
 
+  console.log("Seeding sample reviews...");
+  const productRows = await turso.execute(
+    "SELECT id FROM products ORDER BY created_at DESC LIMIT 3",
+  );
+  const productIds = productRows.rows.map((r) => r.id as string);
+  const sampleReviews = [
+    {
+      user_name: "Yasmine B.",
+      rating: 5,
+      title: "My cat loves it!",
+      body: "Ordered the sea fish food and my cat finished the whole bowl in minutes. Delivery was fast and paying on delivery made it so easy.",
+    },
+    {
+      user_name: "Omar K.",
+      rating: 5,
+      title: "Great quality, fast delivery",
+      body: "The grooming brush is excellent quality. The seller called to confirm the order right away. Highly recommend this store!",
+    },
+    {
+      user_name: "Salma R.",
+      rating: 4,
+      title: "Happy puppy",
+      body: "Bought the soft puppy bed — my dog sleeps on it all day. Would love to see more sizes and colors.",
+    },
+  ];
+  for (const [i, r] of sampleReviews.entries()) {
+    const existing = await turso.execute({
+      sql: "SELECT id FROM reviews WHERE user_name = ? AND title = ?",
+      args: [r.user_name, r.title],
+    });
+    if (existing.rows.length === 0) {
+      await turso.execute({
+        sql: "INSERT INTO reviews (id, product_id, user_id, user_name, rating, title, body, image_url, status) VALUES (?, ?, NULL, ?, ?, ?, ?, NULL, 'approved')",
+        args: [crypto.randomUUID(), productIds[i] ?? null, r.user_name, r.rating, r.title, r.body],
+      });
+      console.log(`  ✓ Review seeded: ${r.user_name} — ${r.title}`);
+    }
+  }
+
   console.log("\nDone.");
   process.exit(0);
 }
