@@ -63,6 +63,7 @@ export function SiteHeader() {
   const { user } = useUserAuth();
   const { settings } = useSettings();
   const { t, lang, setLang } = useI18n();
+  const active = LANGS.find((l) => l.code === lang);
   const navigate = useNavigate();
   const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [search, setSearch] = useState("");
@@ -397,21 +398,38 @@ export function SiteHeader() {
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label={t("lang.label")}
-                className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-3 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-secondary"
+                title={active?.label}
+                className="group inline-flex h-9 shrink-0 items-center gap-2 border border-border bg-card px-2.5 text-sm font-medium text-foreground outline-none transition-colors hover:border-accent/60 hover:bg-secondary/60 data-[state=open]:border-accent data-[state=open]:bg-accent/5"
               >
-                <Languages className="h-4 w-4 text-accent" />
-                {LANGS.find((l) => l.code === lang)?.label}
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="grid h-5 w-8 shrink-0 place-items-center bg-accent/10 text-[10px] font-bold uppercase tracking-wider text-accent">
+                  {active?.code}
+                </span>
+                <span className="hidden whitespace-nowrap sm:inline">{active?.label}</span>
+                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-36">
+              <DropdownMenuContent
+                align="end"
+                className="w-48 rounded-none border-border p-1.5 shadow-xl shadow-black/10"
+              >
                 {LANGS.map((l) => (
                   <DropdownMenuItem
                     key={l.code}
                     onClick={() => setLang(l.code)}
-                    className={lang === l.code ? "bg-accent/10 font-semibold text-accent" : ""}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-none px-2.5 py-2 text-sm focus:bg-accent/10 focus:text-foreground"
                   >
-                    {l.label}
-                    {lang === l.code && <Check className="ml-auto h-4 w-4" />}
+                    <span
+                      className={`grid h-5 w-8 shrink-0 place-items-center text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        lang === l.code
+                          ? "bg-accent text-white"
+                          : "bg-secondary text-muted-foreground"
+                      }`}
+                    >
+                      {l.code}
+                    </span>
+                    <span className={lang === l.code ? "font-semibold text-accent" : ""}>
+                      {l.label}
+                    </span>
+                    {lang === l.code && <Check className="ml-auto h-4 w-4 text-accent" />}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
