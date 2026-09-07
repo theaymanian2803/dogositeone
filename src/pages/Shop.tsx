@@ -50,7 +50,7 @@ export default function Shop() {
   const { add } = useCart();
 
   useEffect(() => {
-    document.title = "Shop â€” PetPals";
+    document.title = "Shop — PetPals";
   }, []);
 
   useEffect(() => {
@@ -193,7 +193,7 @@ export default function Shop() {
         {query.trim() && (
           <div className="mb-8 flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm">
             <span className="text-muted-foreground">{t("shop.resultsFor")}</span>
-            <span className="font-semibold">â€œ{query.trim()}â€</span>
+            <span className="font-semibold">“{query.trim()}”</span>
             <button
               onClick={clearSearch}
               className="ml-auto inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-foreground hover:bg-secondary/70"

@@ -28,7 +28,7 @@ export default function Category() {
 
   useEffect(() => {
     const title = category ? category[0].toUpperCase() + category.slice(1) : "Category";
-    document.title = `${title} â€” PetPals`;
+    document.title = `${title} — PetPals`;
   }, [category]);
 
   useEffect(() => {
@@ -48,9 +48,9 @@ export default function Category() {
   const title = category ? category[0].toUpperCase() + category.slice(1) : "";
   const subtitle =
     category === "dogs"
-      ? "Everything your best friend needs â€” food, beds, toys and more."
+      ? "Everything your best friend needs — food, beds, toys and more."
       : category === "cats"
-        ? "Curated essentials for your feline â€” from cozy beds to playful toys."
+        ? "Curated essentials for your feline — from cozy beds to playful toys."
         : `Browse our ${category} collection.`;
 
   return (
@@ -71,7 +71,7 @@ export default function Category() {
         </header>
 
         {loading ? (
-          <p className="py-20 text-center text-muted-foreground">Loadingâ€¦</p>
+          <p className="py-20 text-center text-muted-foreground">Loading…</p>
         ) : products.length === 0 ? (
           <p className="py-20 text-center text-muted-foreground">{t("category.empty")}</p>
         ) : (

@@ -90,7 +90,7 @@ export default function ProductPage() {
         const data = rs.rows[0] as unknown as Product | undefined;
         setProduct(data ?? null);
         if (data) {
-          document.title = `${data.name} â€” PetPals`;
+          document.title = `${data.name} — PetPals`;
           const [relRs, revRs] = await Promise.all([
             turso.execute({
               sql: "SELECT * FROM products WHERE category = ? AND id != ? LIMIT 4",
@@ -188,7 +188,7 @@ export default function ProductPage() {
       <div className="min-h-screen bg-background">
         <SiteHeader />
         <div className="mx-auto max-w-7xl px-6 py-20 text-center text-muted-foreground">
-          Loadingâ€¦
+          Loading…
         </div>
       </div>
     );
@@ -202,7 +202,7 @@ export default function ProductPage() {
           <h1 className="text-2xl font-bold">{t("product.loadError")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{error}</p>
           <Link to="/" className="mt-5 inline-block text-accent hover:underline">
-            â† Back to store
+            ← Back to store
           </Link>
         </div>
       </div>
@@ -216,7 +216,7 @@ export default function ProductPage() {
         <div className="mx-auto max-w-7xl px-6 py-20 text-center">
           <h1 className="text-3xl font-bold">{t("product.notFound")}</h1>
           <Link to="/" className="mt-4 inline-block text-accent hover:underline">
-            â† Back to store
+            ← Back to store
           </Link>
         </div>
       </div>
@@ -287,7 +287,7 @@ export default function ProductPage() {
               <div className="mt-4 flex items-center gap-2">
                 <Stars rating={Math.round(avgRating)} />
                 <span className="ml-2 text-sm text-muted-foreground">
-                  {avgRating.toFixed(1)} Â· {reviews.length} review{reviews.length > 1 ? "s" : ""}
+                  {avgRating.toFixed(1)} · {reviews.length} review{reviews.length > 1 ? "s" : ""}
                 </span>
               </div>
             )}
@@ -306,7 +306,7 @@ export default function ProductPage() {
             <div className="mt-8 flex items-center gap-4">
               <div className="flex items-center rounded-full border border-border">
                 <button onClick={() => setQty(Math.max(1, qty - 1))} className="h-11 w-11 text-lg">
-                  âˆ’
+                  −
                 </button>
                 <span className="w-10 text-center font-semibold">{qty}</span>
                 <button onClick={() => setQty(qty + 1)} className="h-11 w-11 text-lg">
@@ -387,14 +387,14 @@ export default function ProductPage() {
           </section>
         )}
 
-        {/* â”€â”€â”€â”€â”€ REVIEWS â”€â”€â”€â”€â”€ */}
+        {/* ───── REVIEWS ───── */}
         <section className="mt-24">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-3xl font-bold">{t("product.reviews")}</h2>
               <div className="mt-4 flex items-center gap-4">
                 <span className="text-5xl font-bold tracking-tight">
-                  {reviews.length > 0 ? avgRating.toFixed(1) : "â€”"}
+                  {reviews.length > 0 ? avgRating.toFixed(1) : "—"}
                 </span>
                 <div>
                   <Stars rating={Math.round(avgRating)} className="h-5 w-5" />
@@ -558,7 +558,7 @@ export default function ProductPage() {
           <div className="mt-10 space-y-5">
             {reviews.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                No reviews yet â€” your review could be the first!
+                No reviews yet — your review could be the first!
               </p>
             )}
             {reviews.map((r) => {
@@ -596,7 +596,7 @@ export default function ProductPage() {
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold text-foreground">{r.user_name}</span>
-                      <span className="text-xs text-muted-foreground">Â· {dateStr}</span>
+                      <span className="text-xs text-muted-foreground">· {dateStr}</span>
                     </div>
                     {r.title && (
                       <h4 className="mt-2.5 text-sm font-bold tracking-tight text-foreground">
