@@ -76,12 +76,47 @@ CREATE TABLE IF NOT EXISTS sections (
   button_text TEXT,
   button_link TEXT,
   grid_items  TEXT,
+  columns     INTEGER DEFAULT 3,
+  product_ids TEXT,
   created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 `;
 
 export const DEFAULT_ADMIN_EMAIL = "admin@gmail.com";
 export const DEFAULT_ADMIN_PASSWORD = "admin123";
+
+export async function ensureSectionColumns(): Promise<void> {
+  const turso = getTursoClient();
+  await turso.execute(`
+    CREATE TABLE IF NOT EXISTS sections (
+      id          TEXT PRIMARY KEY,
+      type        TEXT NOT NULL,
+      name        TEXT NOT NULL,
+      size        TEXT NOT NULL DEFAULT 'medium',
+      align       TEXT NOT NULL DEFAULT 'center',
+      image_url   TEXT,
+      title       TEXT,
+      subtitle    TEXT,
+      button_text TEXT,
+      button_link TEXT,
+      grid_items  TEXT,
+      columns     INTEGER DEFAULT 3,
+      product_ids TEXT,
+      created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  const sectionCols = await turso.execute("PRAGMA table_info(sections)");
+  const names = new Set((sectionCols.rows as unknown as { name: string }[]).map((c) => c.name));
+  if (!names.has("align")) {
+    await turso.execute("ALTER TABLE sections ADD COLUMN align TEXT NOT NULL DEFAULT 'center'");
+  }
+  if (!names.has("columns")) {
+    await turso.execute("ALTER TABLE sections ADD COLUMN columns INTEGER DEFAULT 3");
+  }
+  if (!names.has("product_ids")) {
+    await turso.execute("ALTER TABLE sections ADD COLUMN product_ids TEXT");
+  }
+}
 
 export async function setupDatabase(): Promise<void> {
   const turso = getTursoClient();
@@ -92,10 +127,7 @@ export async function setupDatabase(): Promise<void> {
     await turso.execute("ALTER TABLE products ADD COLUMN images TEXT");
   }
 
-  const sectionCols = await turso.execute("PRAGMA table_info(sections)");
-  if (!(sectionCols.rows as unknown as { name: string }[]).some((c) => c.name === "align")) {
-    await turso.execute("ALTER TABLE sections ADD COLUMN align TEXT NOT NULL DEFAULT 'center'");
-  }
+  await ensureSectionColumns();
 
   const existing = await turso.execute({
     sql: "SELECT id FROM admins WHERE email = ?",

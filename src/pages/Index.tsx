@@ -6,6 +6,7 @@ import { PromoBanner } from "@/components/PromoBanner";
 import { ReviewsSection } from "@/components/ReviewsSection";
 import { SectionBanner } from "@/components/SectionBanner";
 import { SectionGrid } from "@/components/SectionGrid";
+import { SectionProducts } from "@/components/SectionProducts";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useSections } from "@/hooks/useSections";
@@ -24,11 +25,13 @@ export default function Index() {
           if (!row.visible) return null;
           if (row.isCustom) {
             if (!row.section) return null;
-            return row.section.type === "grid" ? (
-              <SectionGrid key={row.id} section={row.section} />
-            ) : (
-              <SectionBanner key={row.id} section={row.section} />
-            );
+            if (row.section.type === "grid") {
+              return <SectionGrid key={row.id} section={row.section} />;
+            }
+            if (row.section.type === "products") {
+              return <SectionProducts key={row.id} section={row.section} />;
+            }
+            return <SectionBanner key={row.id} section={row.section} />;
           }
           switch (row.id) {
             case "hero":

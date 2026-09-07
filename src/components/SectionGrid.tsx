@@ -12,8 +12,10 @@ export function SectionGrid({ section }: { section: Section }) {
         : "sm:grid-cols-2 md:grid-cols-4";
   return (
     <section className="mx-auto max-w-7xl px-6 py-16 md:py-20">
-      {section.title && (
-        <h3 className="text-center text-2xl font-bold md:text-3xl">{section.title}</h3>
+      {(section.title || section.name) && (
+        <h3 className="text-center text-2xl font-bold md:text-3xl">
+          {section.title || section.name}
+        </h3>
       )}
       {section.subtitle && (
         <p className="mx-auto mt-3 max-w-xl text-center text-sm leading-relaxed text-muted-foreground md:text-base">

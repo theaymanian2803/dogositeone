@@ -1,5 +1,6 @@
 export type SectionSize = "small" | "medium" | "large";
-export type SectionType = "banner" | "grid";
+export type SectionType = "banner" | "grid" | "products";
+export type SectionColumns = 2 | 3;
 export type SectionAlign = "left" | "center" | "right";
 
 export type GridItem = { image: string; label: string; link: string };
@@ -16,6 +17,8 @@ export type Section = {
   button_text: string;
   button_link: string;
   grid_items: GridItem[];
+  columns: SectionColumns;
+  product_ids: string[];
 };
 
 export type SectionEntry = { id: string; visible: boolean };
@@ -61,6 +64,20 @@ export function parseGridItems(raw: string | null): GridItem[] {
   }
 }
 
+export function parseProductIds(raw: string | null): string[] {
+  try {
+    const arr = JSON.parse(raw ?? "[]");
+    if (!Array.isArray(arr)) return [];
+    return arr.map((x: unknown) => String(x)).filter((x) => x.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+export function parseColumns(raw: unknown): SectionColumns {
+  return raw === 2 ? 2 : 3;
+}
+
 export function parseSectionsOrder(raw: string | null, custom: Section[]): SectionEntry[] {
   let parsed: SectionEntry[] | null = null;
   if (raw) {
@@ -97,7 +114,7 @@ export function serializeSectionsOrder(entries: SectionEntry[]): string {
 export function sectionFromRow(row: Record<string, unknown>): Section {
   return {
     id: String(row.id ?? ""),
-    type: row.type === "grid" ? "grid" : "banner",
+    type: row.type === "grid" ? "grid" : row.type === "products" ? "products" : "banner",
     name: String(row.name ?? ""),
     size: row.size === "small" || row.size === "large" ? row.size : "medium",
     align: row.align === "left" || row.align === "right" ? row.align : "center",
@@ -107,6 +124,8 @@ export function sectionFromRow(row: Record<string, unknown>): Section {
     button_text: String(row.button_text ?? ""),
     button_link: String(row.button_link ?? ""),
     grid_items: parseGridItems(String(row.grid_items ?? "[]")),
+    columns: parseColumns(row.columns),
+    product_ids: parseProductIds(String(row.product_ids ?? "[]")),
   };
 }
 

@@ -5,6 +5,7 @@ import { sampleCategories, sampleProducts } from "@/lib/sampleData";
 import { turso, resetTursoClient } from "@/integrations/turso/client";
 import { formatPrice } from "@/lib/currency";
 import { clearTursoConfig, isUsingCustomConfig } from "@/lib/tursoConfig";
+import { ensureSectionColumns } from "@/lib/setupDatabase";
 import { TursoSettingsDialog } from "@/components/TursoSettingsDialog";
 import { ControlsManager } from "@/components/admin/ControlsManager";
 import {
@@ -315,10 +316,7 @@ export default function Admin() {
     if (!(cols.rows as unknown as { name: string }[]).some((c) => c.name === "images")) {
       await turso.execute("ALTER TABLE products ADD COLUMN images TEXT");
     }
-    const sectionCols = await turso.execute("PRAGMA table_info(sections)");
-    if (!(sectionCols.rows as unknown as { name: string }[]).some((c) => c.name === "align")) {
-      await turso.execute("ALTER TABLE sections ADD COLUMN align TEXT NOT NULL DEFAULT 'center'");
-    }
+    await ensureSectionColumns();
     const tables = await turso.execute(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='reviews'",
     );
@@ -342,22 +340,6 @@ export default function Admin() {
       CREATE TABLE IF NOT EXISTS settings (
         key   TEXT PRIMARY KEY,
         value TEXT
-      )
-    `);
-    await turso.execute(`
-      CREATE TABLE IF NOT EXISTS sections (
-        id          TEXT PRIMARY KEY,
-        type        TEXT NOT NULL,
-        name        TEXT NOT NULL,
-        size        TEXT NOT NULL DEFAULT 'medium',
-        align       TEXT NOT NULL DEFAULT 'center',
-        image_url   TEXT,
-        title       TEXT,
-        subtitle    TEXT,
-        button_text TEXT,
-        button_link TEXT,
-        grid_items  TEXT,
-        created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
   }
@@ -941,7 +923,7 @@ export default function Admin() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-secondary/50">
+    <div className="flex min-h-screen bg-secondary/50 lg:h-screen lg:overflow-hidden">
       {/* Mobile sidebar overlay */}
       {!isMobile && sidebarOpen && (
         <div
@@ -967,7 +949,7 @@ export default function Admin() {
           </div>
 
           {/* Nav */}
-          <nav data-tour="admin-dashboard" className="flex-1 px-3 py-4 space-y-1">
+          <nav data-tour="admin-dashboard" className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1">
             {navItems.map((item) => (
               <button
                 key={item.key}
@@ -1050,7 +1032,7 @@ export default function Admin() {
 
         {/* Content */}
         <main
-          className={`flex-1 ${tab === "orders" ? "overflow-hidden flex flex-col" : "overflow-y-auto"}`}
+          className={`flex-1 min-h-0 ${tab === "orders" ? "overflow-hidden flex flex-col" : "overflow-y-auto"}`}
         >
           {/* ───── STATS ROW ───── */}
           <div className="px-4 sm:px-6 pt-6 pb-2">
