@@ -6,9 +6,9 @@ import { SettingsProvider } from "@/hooks/useSettings";
 import { SettingsDialogProvider } from "@/components/SettingsDialogProvider";
 import { OnboardingDialog } from "@/components/OnboardingDialog";
 import { FloatingContact } from "@/components/FloatingContact";
-import { isOnboardingDone } from "@/lib/onboarding";
+import { isOnboardingDone, ONBOARDING_RESTART_EVENT } from "@/lib/onboarding";
 import { I18nProvider } from "@/lib/i18n";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Index from "@/pages/Index";
 import Admin from "@/pages/Admin";
 import Auth from "@/pages/Auth";
@@ -29,6 +29,12 @@ const queryClient = new QueryClient();
 
 export default function App() {
   const [onboardingOpen, setOnboardingOpen] = useState(() => !isOnboardingDone());
+
+  useEffect(() => {
+    const onRestart = () => setOnboardingOpen(true);
+    window.addEventListener(ONBOARDING_RESTART_EVENT, onRestart);
+    return () => window.removeEventListener(ONBOARDING_RESTART_EVENT, onRestart);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -221,8 +221,11 @@ type ConfirmAction = {
   message: string;
   confirmLabel: string;
   variant: "destructive" | "default";
+  password?: string;
   onConfirm: () => void;
 } | null;
+
+const DATA_GUARD_PASSWORD = "demo123";
 
 const inputClass =
   "h-10 w-full rounded-full border border-border bg-background px-4 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/25";
@@ -277,6 +280,11 @@ export default function Admin() {
   const [credsForm, setCredsForm] = useState({ email: "", current: "", next: "", confirm: "" });
   const [changingCreds, setChangingCreds] = useState(false);
   const [dataBusy, setDataBusy] = useState(false);
+  const [guardPassword, setGuardPassword] = useState("");
+
+  useEffect(() => {
+    setGuardPassword("");
+  }, [confirm]);
 
   const isAdmin = !!user;
   const usingCustom = isUsingCustomConfig();
@@ -882,9 +890,10 @@ export default function Admin() {
     setConfirm({
       title: "Clear all store data?",
       message:
-        "This permanently deletes ALL products, categories, orders and reviews. Your settings are kept. This cannot be undone — export a backup first!",
+        "This permanently deletes ALL products, categories, orders and reviews. Your settings are kept. This cannot be undone — export a backup first! This is a demo store, so a guard password is required to continue.",
       confirmLabel: "Delete everything",
       variant: "destructive",
+      password: DATA_GUARD_PASSWORD,
       onConfirm: async () => {
         setDataBusy(true);
         try {
@@ -1915,6 +1924,27 @@ export default function Admin() {
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                   {confirm.message}
                 </p>
+                {confirm.password && (
+                  <div className="mt-4 w-full">
+                    <input
+                      type="password"
+                      placeholder="Guard password"
+                      value={guardPassword}
+                      onChange={(e) => setGuardPassword(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && guardPassword === confirm.password) {
+                          confirm.onConfirm();
+                          setConfirm(null);
+                        }
+                      }}
+                      autoFocus
+                      className="h-10 w-full rounded-full border border-border bg-background px-4 text-center text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/25"
+                    />
+                    <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">
+                      Demo guard password: {DATA_GUARD_PASSWORD}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="px-6 pb-6 flex justify-center gap-2.5">
                 <button
@@ -1928,11 +1958,12 @@ export default function Admin() {
                     confirm.onConfirm();
                     setConfirm(null);
                   }}
+                  disabled={!!confirm.password && guardPassword !== confirm.password}
                   className={`h-10 px-6 text-sm font-semibold text-white active:scale-[0.98] transition-all rounded-full ${
                     confirm.variant === "destructive"
                       ? "bg-red-500 hover:bg-red-600"
                       : "bg-accent hover:opacity-90"
-                  }`}
+                  } disabled:pointer-events-none disabled:opacity-40`}
                 >
                   {confirm.confirmLabel}
                 </button>

@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Database,
   KeyRound,
   LayoutDashboard,
@@ -12,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { markOnboardingDone } from "@/lib/onboarding";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
 interface Step {
@@ -88,6 +91,7 @@ interface Rect {
   left: number;
   width: number;
   height: number;
+  radius: string;
 }
 
 interface OnboardingDialogProps {
@@ -100,6 +104,9 @@ export function OnboardingDialog({ open, onOpenChange }: OnboardingDialogProps) 
   const [rect, setRect] = useState<Rect | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const { signIn } = useAuth();
+  const signingIn = useRef(false);
+  const scrollDoneFor = useRef<string | null>(null);
 
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
@@ -107,18 +114,34 @@ export function OnboardingDialog({ open, onOpenChange }: OnboardingDialogProps) 
 
   useEffect(() => {
     if (!open) return;
+    setStep(0);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     const current = STEPS[step];
     const here = location.pathname + location.search;
     const hasSession = !!localStorage.getItem("session");
+    if (hasSession) signingIn.current = false;
     if (current.route === "/auth" && hasSession && step < 2) {
       setStep(2);
       return;
     }
     if (!current.route) return;
     if (here === current.route) return;
-    if (current.route.startsWith("/admin") && !hasSession) return;
+    if (current.route.startsWith("/admin") && !hasSession) {
+      if (!signingIn.current) {
+        signingIn.current = true;
+        signIn(DEMO_EMAIL, DEMO_PASSWORD)
+          .then(() => navigate(current.route))
+          .catch(() => {
+            signingIn.current = false;
+          });
+      }
+      return;
+    }
     navigate(current.route);
-  }, [open, step, location.pathname, location.search, navigate]);
+  }, [open, step, location.pathname, location.search, navigate, signIn]);
 
   useEffect(() => {
     if (!open || step !== 1) return;
@@ -150,8 +173,20 @@ export function OnboardingDialog({ open, onOpenChange }: OnboardingDialogProps) 
       setRect(null);
       return;
     }
+    const key = `${step}:${sel}`;
+    if (scrollDoneFor.current !== key) {
+      scrollDoneFor.current = key;
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+    const cs = getComputedStyle(el);
     const r = el.getBoundingClientRect();
-    setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+    setRect({
+      top: r.top,
+      left: r.left,
+      width: r.width,
+      height: r.height,
+      radius: cs.borderRadius,
+    });
   }, [open, step]);
 
   useLayoutEffect(() => {
@@ -191,27 +226,48 @@ export function OnboardingDialog({ open, onOpenChange }: OnboardingDialogProps) 
       )
     : 16;
   const tooltipTop = rect
-    ? placeBelow
-      ? rect.top + rect.height + 24
-      : rect.top - TOOLTIP_HEIGHT - 24
+    ? Math.min(
+        Math.max(placeBelow ? rect.top + rect.height + 24 : rect.top - TOOLTIP_HEIGHT - 24, 16),
+        window.innerHeight - TOOLTIP_HEIGHT - 16,
+      )
     : 16;
+
+  const isAboveViewport = rect !== null && rect.top < 0;
+  const isBelowViewport = rect !== null && rect.top + rect.height > window.innerHeight;
 
   return (
     <div className="fixed inset-0 z-[100]" role="dialog" aria-label="Welcome tour">
-      <div className="absolute inset-0 bg-black/60" />
+      {!rect && <div className="pointer-events-none absolute inset-0 bg-black/60" />}
 
       {rect && (
         <div
           data-tour-spotlight
-          className="absolute rounded-lg border-2 border-accent bg-background/10 pointer-events-none transition-all duration-300"
+          className="absolute pointer-events-none transition-all duration-300"
           style={{
-            top: rect.top - 6,
-            left: rect.left - 6,
-            width: rect.width + 12,
-            height: rect.height + 12,
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+            borderRadius: rect.radius,
             boxShadow: "0 0 0 9999px rgba(0,0,0,0.6)",
           }}
         />
+      )}
+
+      {rect && (isAboveViewport || isBelowViewport) && (
+        <div
+          className="pointer-events-none absolute left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-1.5"
+          style={isAboveViewport ? { top: 20 } : { bottom: 20 }}
+        >
+          {isBelowViewport ? (
+            <ChevronDown className="h-7 w-7 animate-bounce text-accent" />
+          ) : (
+            <ChevronUp className="h-7 w-7 animate-bounce text-accent" />
+          )}
+          <span className="rounded-full bg-background/95 px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-lg">
+            {isBelowViewport ? "Scroll down to see it" : "Scroll up to see it"}
+          </span>
+        </div>
       )}
 
       <div
