@@ -128,19 +128,20 @@ export function OnboardingDialog({ open, onOpenChange }: OnboardingDialogProps) 
       return;
     }
     if (!current.route) return;
-    if (here === current.route) return;
-    if (current.route.startsWith("/admin") && !hasSession) {
+    const route = current.route;
+    if (here === route) return;
+    if (route.startsWith("/admin") && !hasSession) {
       if (!signingIn.current) {
         signingIn.current = true;
         signIn(DEMO_EMAIL, DEMO_PASSWORD)
-          .then(() => navigate(current.route))
+          .then(() => navigate(route))
           .catch(() => {
             signingIn.current = false;
           });
       }
       return;
     }
-    navigate(current.route);
+    navigate(route);
   }, [open, step, location.pathname, location.search, navigate, signIn]);
 
   useEffect(() => {
