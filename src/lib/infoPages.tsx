@@ -256,7 +256,8 @@ export const infoPages: InfoPage[] = [
     slug: "press",
     eyebrow: "News & media",
     title: "Press & media",
-    subtitle: "The latest news, assets, and story of PetPals — for journalists and friends of the brand.",
+    subtitle:
+      "The latest news, assets, and story of PetPals — for journalists and friends of the brand.",
     icon: Megaphone,
     sections: [
       {
@@ -284,7 +285,8 @@ export const infoPages: InfoPage[] = [
     slug: "sustainability",
     eyebrow: "Better for pets, better for the planet",
     title: "Sustainability",
-    subtitle: "We believe the healthiest pet products shouldn't cost the earth. Here's how we give back.",
+    subtitle:
+      "We believe the healthiest pet products shouldn't cost the earth. Here's how we give back.",
     icon: Leaf,
     sections: [
       {
