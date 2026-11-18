@@ -1,265 +1,155 @@
-# PetPals — Buyer Instructions
+# PetPals — buyer instructions
 
-Thank you for purchasing this premium React e-commerce template. PetPals is a complete
-dog & cat supplies store with a built-in admin dashboard (products, categories, orders,
-reviews, homepage sections) backed by a **Turso** database.
+A sellable pet-supply storefront: TanStack Start + React 19 + Tailwind v4 + libSQL (Turso), with a full admin for products, orders, page controls, pages, settings, theme, reviews, coupons, customers, media and setup.
 
-This guide walks you through everything: running it locally, connecting your database,
-and deploying it live on **Vercel** using the drag-and-drop **Vercel Drop** method — no
-Git or command line required.
+## 1. Run it
 
----
-
-## 1. What's in the package
-
-```
-dogositeone/
-├── src/                       # All source code
-│   ├── components/            # Storefront + admin UI (Navbar, Hero, ProductGrid, admin/*)
-│   ├── pages/                 # Route pages (Index, Shop, Product, Cart, Admin, Auth, ...)
-│   ├── hooks/                 # Data hooks (useAuth, useUserAuth, useSettings, ...)
-│   ├── integrations/turso/    # Turso (libSQL) client
-│   ├── lib/                   # Business logic (setupDatabase, sections, sampleData, i18n)
-│   ├── assets/                # Images
-│   ├── App.tsx                # App entry with routing
-│   ├── main.tsx               # React bootstrap
-│   └── styles.css             # Tailwind v4 theme tokens
-├── scripts/                   # Optional seed scripts (need Bun)
-├── index.html                 # HTML entry point
-├── package.json               # Project manifest & scripts
-├── .env.example               # Copy this to create your .env file (see Section 4)
-├── .gitignore
-├── INSTRUCTIONS.md            # This file
-└── config files               # Vite, Tailwind, TypeScript, ESLint, shadcn/ui configs
+```sh
+bun install
+bun run dev
 ```
 
-### Tech stack
+Open `http://localhost:8080`. The first page request creates `.data/petpals.db` and seeds the 13-product pet catalog, pages and homepage sections.
 
-| Layer      | Technology                                    |
-| ---------- | --------------------------------------------- |
-| Framework  | React 19 + TypeScript + Vite 7                |
-| Styling    | Tailwind CSS v4 + shadcn/ui (Radix UI)        |
-| Routing    | React Router 6 (single-page app)              |
-| Data       | Turso (libSQL) — browser talks to it directly |
-| Charts     | Recharts (admin dashboard)                    |
-| Carousels  | Embla                                         |
-| Hosting    | Vercel (recommended)                          |
+## 2. Sign in to the admin
 
-> **No backend server.** The storefront and the admin both read/write Turso directly from
-> the browser, so the whole app is a static site — perfect for Vercel's free plan.
+Open `/admin/login` and use the seeded owner:
 
----
-
-## 2. Requirements
-
-- **Node.js 18 or newer** — <https://nodejs.org> (the LTS version is best)
-- **npm** — comes bundled with Node.js
-- A free **Vercel account** — <https://vercel.com/signup>
-- A free **Turso account** for the database — <https://turso.tech>
-
-> None of these services require a credit card for the free tiers.
-
----
-
-## 3. Extract the project locally
-
-1. Unzip the package to any folder on your computer.
-2. Open a terminal (**PowerShell** / **CMD**, or macOS/Linux **Terminal**) and enter the folder:
-
-   ```bash
-   cd dogositeone
-   ```
-
-3. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-4. Start the development server:
-
-   ```bash
-   npm run dev
-   ```
-
-5. Open the URL printed in the terminal (usually <http://localhost:5173>) — the store is
-   now running locally. Edits in `src/` reload instantly.
-
-Other useful commands:
-
-```bash
-npm run build     # Production build into dist/
-npm run preview   # Serve the production build locally
-npm run lint      # ESLint check
+```text
+Email:    admin@email.com
+Password: 123456789
 ```
 
-> Until you connect a Turso database, the site uses a small built-in demo dataset so you
-> can preview the design immediately (see the next section).
+The password is stored as a PBKDF2 hash, never plaintext. Rotate it in **Admin → Setup** before a public launch. If the owner row is removed, the first-run form creates a new owner with an 8+ character password.
 
----
+Optional: set `OWNER_SETUP_KEY` in the environment to require a setup key on that first-run form.
 
-## 4. Configure environment variables (Turso database)
+The first admin visit starts a seven-step guided tour (dashboard → page controls → products → settings → setup). Finish or skip it; restart it any time from **Setup → Restart tour**.
 
-All store content lives in **Turso**. Connect it once and the storefront + admin come alive.
+## 3. What you can control
 
-### 4.1 Create your Turso database (~2 minutes)
+| Admin section       | What it controls                                                                                                            |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard           | revenue, orders, products, customers, low stock, recent orders                                                              |
+| Page controls       | homepage sections: hero, product grid, promo, banner, rich text, categories, lookbook, featured brand — reorder, hide, edit |
+| Pages               | About, Shipping, Returns, FAQ, Contact at `/pages/<key>`                                                                    |
+| Products            | full catalog CRUD, pricing, stock, images, care and suitability detail                                                      |
+| Categories / Brands | catalog taxonomy (Dogs, Cats, Food, Grooming, Beds, Toys by default)                                                       |
+| Orders              | order list, line items, status updates                                                                                      |
+| Reviews             | add, approve/unapprove, delete                                                                                              |
+| Coupons             | percentage/fixed discounts, minimums, usage caps, expiry                                                                     |
+| Customers           | accounts, roles (admin/moderator/customer), delete                                                                          |
+| Media               | image uploads stored in the database, served from `/api/media/:id`                                                          |
+| Theme               | display/body font pairing and accent colour                                                                                 |
+| Settings            | branding, contact, shipping, reviews, popup, navigation, footer                                                             |
+| Setup               | database connect/test/reset, owner credentials, license, launch checklist                                                   |
 
-1. Create a free account at <https://turso.tech>.
-2. **Databases → Create database**, pick a name (e.g. `petpals-store`) and a region near
-   your visitors, then **Create**.
-3. Open the database → **Generate token** → copy the token (looks like `eyJ...`).
-4. Copy the database **URL** (looks like `libsql://petpals-store-xxxx.turso.io`).
+## 4. Products and images
 
-The tables are created **automatically** the first time the site loads with a valid
-database — no SQL and no migrations to run.
+Every seeded product is **One Size**. The product page shows a single-size note and the checkout stores the size as `One Size`; there is no apparel size guide.
 
-### 4.2 Create your `.env` file
+Replace the sample photography before launch. Local files live in `public/products/`:
 
-1. In the project root, copy the example file:
+- `bone.jpg` — chew toy
+- `biscuit.jpg` — treats / food bag
+- `bed.jpg` — beds and scratching posts
+- `groom.jpg` — grooming
 
-   ```bash
-   # Windows
-   copy .env.example .env
+You can also upload through **Admin → Media** and paste the `/api/media/<id>` URL into a product. Update product names, descriptions, prices, stock and categories in **Admin → Products**.
 
-   # macOS / Linux
-   cp .env.example .env
-   ```
+## 5. Database
 
-2. Open `.env` and fill in your values:
+Local development uses `file:.data/petpals.db`. To use Turso:
 
-   ```env
-   VITE_TURSO_DB_URL=libsql://petpals-store-xxxx.turso.io
-   VITE_TURSO_AUTH_TOKEN=eyJ...your-token...
-   ```
+1. Create a database at turso.tech.
+2. In `/admin/setup`, paste the `libsql://` URL and auth token, choose whether to keep the sample catalog, then Save & connect. You will be signed out of the old database — create the owner account on the new one.
 
-3. Restart the dev server (`Ctrl + C`, then `npm run dev`) so the values are picked up.
+Or set environment variables before the build:
 
-### 4.3 Admin login (change the password!)
-
-The site ships with demo admin credentials:
-
-- **Email:** `admin@gmail.com`
-- **Password:** `admin123`
-
-Sign in at `/auth` (or `/admin`). **Change these before going live** — go to
-**Admin → Settings → Admin credentials**, enter the current password, then set your own
-email and password.
-
-> ⚠️ `.env` holds secrets. Never commit it, share it, or upload it. On Vercel you enter
-> the same values in the dashboard instead (Section 6). `.env` is already in `.gitignore`.
-
-### 4.4 Activate your license
-
-The admin dashboard is unlocked with the product key you received when you bought this
-template. The key is bound to the domain you deploy on, so activate it **after** your site
-is live on its final domain (activating on `localhost` binds it to `localhost`).
-
-1. Open your site's `/admin` (or `/auth`). You'll see an **Activate** screen.
-2. Paste your product key (looks like `DOGOSITE-XXXX-XXXX-XXXX`) and click **Activate**.
-3. The dashboard unlocks. The key allows a limited number of domains (usually 3); re-entering
-   the same key on the same domain is always free.
-
-If you move to a new domain later and the key reports a **domain limit**, contact your
-seller to release the old binding. To re-enter a different key, open
-**Admin → Settings → License → Change key**.
-
----
-
-## 5. Deploy on Vercel (recommended — easiest option)
-
-The fastest route is **Option A (Vercel Drop)** — no Git, no CLI, no commands.
-
-### Option A — Vercel Drop (drag & drop, no code)
-
-1. Build once locally as a sanity check (optional but recommended):
-
-   ```bash
-   npm run build
-   ```
-
-2. Go to <https://vercel.com> and **log in** (create a free account if needed).
-3. Open the Drop page: <https://vercel.com/drop>.
-4. **Drag the extracted project folder** (the one containing `package.json`) into the drop
-   zone. Do **not** drop the zip file — drop the **extracted** folder.
-5. Vercel detects **Vite** automatically, installs dependencies, and builds the project.
-6. When the build finishes, your site is live at a URL like
-   `https://dogositeone-xxxx.vercel.app`.
-
-> ⚠️ **Add your environment variables** (Section 6) right after the first deploy and
-> **Redeploy**, or the live site will have no database.
-
-### Option B — Vercel CLI
-
-```bash
-npm i -g vercel
-vercel login
-vercel          # preview deploy
-vercel --prod   # production deploy
+```
+TURSO_DATABASE_URL=libsql://…
+TURSO_AUTH_TOKEN=…
 ```
 
-Accept the defaults when asked (framework: **Vite**, build: `npm run build`, output: `dist`).
+The token is stored server-side and never returned to the browser.
 
-### Option C — GitHub import
+## 6. Customer accounts
 
-1. Push the project to a GitHub repo (`.env` is already gitignored).
-2. In Vercel: **Add New → Project → Import** your repo.
-3. Keep the Vite defaults and click **Deploy**.
+Shoppers can create an account at `/account` to see their orders and save products. Guest checkout still works without an account.
+**Password recovery without email:** the customer opens **Forgot password?** on `/account`, requests a code, and the shop issues it in **Admin → Customers → Password recovery** (or **Reset** on a customer row). Send the code by WhatsApp or phone. The code is hashed, expires in 30 minutes, works once, locks after five wrong attempts, and signs the customer out everywhere when used.
 
----
+**Google sign-in (optional):** create (or reuse) an OAuth 2.0 Web client in Google Cloud Console, add `<your-domain>/api/auth/google/callback` as an authorised redirect URI, then set:
 
-## 6. Add your environment variables on Vercel
+```
+GOOGLE_CLIENT_ID=…
+GOOGLE_CLIENT_SECRET=…
+# optional override
+GOOGLE_REDIRECT_URI=https://your-domain/api/auth/google/callback
+```
 
-**Required** so the deployed site can reach your database (the `.env` file never leaves
-your computer).
+The “Continue with Google” button appears on `/account` once both values are set; otherwise shoppers use email/password or **Continue as guest**. Google accounts are created as `customer` only — the admin always signs in with email and password. Reviews can require approval in Settings.
 
-1. Vercel project → **Settings → Environment Variables**.
-2. Add the same values from your `.env`:
+## 7. Cash on delivery and WhatsApp
 
-   | Name                     | Value                             |
-   | ------------------------ | --------------------------------- |
-   | `VITE_TURSO_DB_URL`      | `libsql://your-database.turso.io` |
-   | `VITE_TURSO_AUTH_TOKEN`  | your Turso token                  |
+Checkout is cash on delivery: no card payment is processed. Configure it in **Admin → Settings → Shipping and cash on delivery**:
 
-3. **Deployments → (latest) → ⋯ → Redeploy** to apply them.
-4. Open your live URL — the first load creates the tables and seeds demo content
-   automatically.
+- Flat rate and free-delivery threshold (defaults: 50 MAD flat, free from 500 MAD).
+- COD label, minimum order and delivery time shown to the customer.
+- Delivery zones: one per line as `City|fee|free threshold`. Zones start empty; until a city is added, the flat rate applies everywhere.
 
----
+The store currency is **MAD**. Change it in **Admin → Settings → Shipping and cash on delivery**; prices across the storefront, checkout and emails follow the setting.
 
-## 7. Customize the site
+**WhatsApp orders:** set the customer-facing shop number, the owner alert number, the button label and opening message in **Admin → Settings → WhatsApp orders**. The storefront then shows a floating WhatsApp button, a per-product order link, and a post-checkout "send this order on WhatsApp" link with the order prefilled.
 
-- **Catalog, categories, orders, reviews, homepage sections:** log in at
-  `your-site.vercel.app/admin` and manage everything from the dashboard — no code needed.
-- **Brand, hero, promo, contact, socials, shipping:** **Admin → Settings** (stored in the
-  database and read live by the storefront).
-- **Colors, fonts, spacing:** edit the theme tokens in `src/styles.css`.
-- **Copy / translations:** edit `src/lib/i18n.tsx` (storefront is multilingual; the admin
-  is English-only by design).
-- **UI components:** all shadcn/ui components live in `src/components/ui/`.
+**Automatic new-order alerts** use the Meta WhatsApp Cloud API. Add these to `.env`:
 
-> A first-run **guided tour** highlights the admin, and a **demo banner** at the top of the
-> site shows the demo login with a "Restart tour" button. The banner disappears
-> automatically once you connect your own database.
+```
+WHATSAPP_TOKEN=...
+WHATSAPP_PHONE_NUMBER_ID=...
+WHATSAPP_OWNER_NUMBER=2126...
+# optional
+WHATSAPP_API_VERSION=v20.0
+```
 
----
+`WHATSAPP_OWNER_NUMBER` is a fallback; the owner number saved in Settings takes priority. If the variables are missing or Meta rejects the request, the order is still stored and the admin keeps working.
 
-## 8. Troubleshooting
+## 8. Language
 
-| Problem                                             | Solution                                                                                     |
-| --------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `npm install` is slow or fails                      | Retry, or `npm install --legacy-peer-deps`. Ensure Node 18+ is installed.                     |
-| Site loads but products/categories are empty        | Turso isn't configured — check `VITE_TURSO_DB_URL` / `VITE_TURSO_AUTH_TOKEN`, then restart.   |
-| Can't log in to the admin                           | Use the seeded `admin@gmail.com` / `admin123`, then change it in Admin → Settings.            |
-| Vercel build fails                                  | Re-drop the full **extracted** folder (not the zip), confirm env vars, then **Redeploy**.     |
-| Changes don't appear after editing env vars         | Env changes require a **Redeploy** (Settings → Environment Variables → redeploy).             |
-| Port already in use                                 | `npm run dev -- --port 5174`                                                                  |
-| "Delete all data" asks for a guard password         | Demo safeguard only — it does not affect normal use.                                          |
+The storefront ships English and French. Switch the store language in **Admin → Settings → Language** (`store_locale.language`). Admin screens stay English. Content pages and product copy stay as entered, so translate them in the admin if the shop is French.
 
----
+## 9. Licensing (optional, off by default)
 
-## 9. Need help?
+The store works with no license. To gate admin writes behind a domain license, run your own license server that issues Ed25519 grants and set:
 
-If something isn't covered here, contact your seller's support with a screenshot of the
-issue and the Vercel build log if relevant.
+```
+LICENSE_SERVER_URL=https://your-license-server.example
+LICENSE_PUBLIC_KEY={"crv":"Ed25519","kty":"OKP","x":"…"}
+LICENSE_PRODUCT=track-suit-society
+```
 
-Happy selling! 🚀
+`LICENSE_DISABLED=1` forces the gate off. The storefront is never gated; only admin writes require activation when licensing is enabled.
+
+## 10. Email
+
+Email uses Resend. Set `EMAIL_ENABLED=1`, `EMAIL_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO`, `EMAIL_OWNER` and `EMAIL_TEST_TO` in the environment; verify the sender domain in Resend first. Admin → Settings → **Email (Resend)** → **Send test email** confirms delivery. Order receipts, owner alerts and password reset codes are sent through the same sender. If email is not configured, checkout and admin-issued recovery codes still work.
+
+The sample `.env` uses `EMAIL_FROM=PetPals <orders@unccode.site>` and `EMAIL_OWNER=sberechou@gmail.com`; replace both with the buyer's verified domain and inbox before selling.
+
+## 11. Deploy
+
+```sh
+bun run build
+```
+
+The Nitro output targets Cloudflare. Set the Turso env vars in the host, then deploy the built output. See `DEPLOYMENT.md` for Vercel, Cloudflare Pages and Cloudflare Workers.
+
+## 12. Verify a sale build
+
+```sh
+bun run test
+bun run typecheck
+bun run lint
+bun run build
+```
+
+Then sign in, edit a product, change a page section, place a test order and confirm it appears under Orders.

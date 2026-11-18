@@ -1,67 +1,65 @@
-import { defineConfig, loadEnv, type Plugin } from "vite";
-import react from "@vitejs/plugin-react";
+import { fileURLToPath } from "node:url";
+
 import tailwindcss from "@tailwindcss/vite";
-import tsconfigPaths from "vite-tsconfig-paths";
-import path from "path";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
+import { nitro } from "nitro/vite";
+import { defineConfig } from "vite";
 
-import { sendOrderEmail } from "./server/email";
-
-function localEmailApi(): Plugin {
-  return {
-    name: "local-email-api",
-    configureServer(server) {
-      server.middlewares.use("/api/send-order-email", (request, response) => {
-        if (request.method !== "POST") {
-          response.statusCode = 405;
-          response.setHeader("content-type", "application/json");
-          response.end(JSON.stringify({ ok: false, error: "Method not allowed." }));
-          return;
-        }
-
-        let raw = "";
-        request.on("data", (chunk: Buffer) => {
-          raw += chunk.toString();
-        });
-        request.on("end", () => {
-          void (async () => {
-            try {
-              const data = JSON.parse(raw) as Parameters<typeof sendOrderEmail>[0];
-              if (!data.customer?.email || !Array.isArray(data.items) || data.items.length === 0) {
-                response.statusCode = 400;
-                response.setHeader("content-type", "application/json");
-                response.end(JSON.stringify({ ok: false, error: "Invalid order payload." }));
-                return;
-              }
-              const result = await sendOrderEmail(data);
-              response.statusCode = 200;
-              response.setHeader("content-type", "application/json");
-              response.end(JSON.stringify({ ok: true, ...result }));
-            } catch (error) {
-              console.error("[email-api]", error);
-              response.statusCode = 400;
-              response.setHeader("content-type", "application/json");
-              response.end(JSON.stringify({ ok: false, error: "Invalid request." }));
-            }
-          })();
-        });
-      });
+export default defineConfig(({ command }) => ({
+  server: {
+    host: "::",
+    port: 8080,
+  },
+  css: {
+    transformer: "lightningcss",
+  },
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
-  };
-}
-
-export default defineConfig(({ mode }) => {
-  Object.assign(process.env, loadEnv(mode, process.cwd(), ""));
-
-  return {
-    plugins: [react(), tailwindcss(), tsconfigPaths(), localEmailApi()],
-    resolve: {
-      alias: {
-        "@": path.resolve(__dirname, "./src"),
+    dedupe: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "@tanstack/react-query",
+      "@tanstack/query-core",
+    ],
+  },
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react-dom/client",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+    ],
+    ignoreOutdatedRequests: true,
+  },
+  plugins: [
+    tailwindcss(),
+    tanstackStart({
+      importProtection: {
+        behavior: "error",
+        client: {
+          files: ["**/server/**"],
+          specifiers: ["server-only"],
+        },
       },
-    },
-    server: {
-      host: "::",
-      port: 8080,
-    },
-  };
-});
+      // Route TanStack Start's bundled server entry to src/server.ts (the SSR error wrapper).
+      server: { entry: "server" },
+    }),
+    ...(command === "build"
+      ? [
+          nitro({
+            // Cloudflare Workers by default. Vercel: NITRO_PRESET=vercel.
+            // Cloudflare Pages: NITRO_PRESET=cloudflare-pages.
+            defaultPreset: process.env["NITRO_PRESET"] ?? "cloudflare-module",
+            cloudflare: { nodeCompat: true },
+          }),
+        ]
+      : []),
+    viteReact(),
+  ],
+}));
