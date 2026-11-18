@@ -1,6 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { turso } from "@/integrations/turso/client";
+import { BRAND_OVERRIDE as LOCAL_BRAND_OVERRIDE } from "@/lib/brand";
+
+const ENV_BRAND_OVERRIDE = (import.meta.env as Record<string, string | undefined>)[
+  "VITE_BRAND_NAME"
+]?.trim();
+const BRAND_OVERRIDE = ENV_BRAND_OVERRIDE || LOCAL_BRAND_OVERRIDE;
 
 export const defaultSettings = {
   brand_name: "PetPals",
@@ -11,8 +17,8 @@ export const defaultSettings = {
   whatsapp_number: "",
   contact_address: "124 Whisker Lane, Portland, OR 97205",
   support_hours: "Mon–Sat, 9am–6pm",
-  hero_badge: "Get 40% Off On Your First Order",
-  hero_title: "Puppy And Cat\nFood",
+  hero_badge: "Free delivery over 500 MAD",
+  hero_title: "Everything Your\nPet Needs",
   hero_subtitle:
     "Premium nutrition crafted for your best friends. Wholesome ingredients, irresistible flavor, and tail-wagging happiness in every bowl.",
   promo_title: "Chicken Flavor Food",
@@ -50,7 +56,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const map = Object.fromEntries(
         rs.rows.map((r) => [String(r.key), String(r.value ?? "")]),
       ) as Partial<Settings>;
-      setSettings({ ...defaultSettings, ...map });
+      setSettings({
+        ...defaultSettings,
+        ...map,
+        ...(BRAND_OVERRIDE ? { brand_name: BRAND_OVERRIDE } : {}),
+      });
     } catch {
       setSettings(defaultSettings as Settings);
     }

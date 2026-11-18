@@ -7,11 +7,11 @@ import bone from "@/assets/product-bone.jpg";
 import food from "@/assets/product-food.jpg";
 
 const items = [
-  { name: "Groom", img: groom, to: "/category/groom" },
-  { name: "Collar", img: collar, to: "/category/collar" },
-  { name: "Bed", img: bed, to: "/category/bed" },
-  { name: "Retractable Leash", img: bone, to: "/category/dogs" },
-  { name: "Foods", img: food, to: "/category/foods" },
+  { name: "Grooming", img: groom, to: "/category/groom" },
+  { name: "Collars", img: collar, to: "/category/collar" },
+  { name: "Beds", img: bed, to: "/category/bed" },
+  { name: "Toys", img: bone, to: "/category/toys" },
+  { name: "Food", img: food, to: "/category/foods" },
 ];
 
 export function Categories() {

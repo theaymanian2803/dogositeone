@@ -388,8 +388,10 @@ export default function Admin() {
     }
   }
 
+  // load is recreated per render; including it would refetch in a loop.
   useEffect(() => {
     if (isAdmin) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
   useEffect(() => {

@@ -41,7 +41,7 @@ export function ReviewsSection() {
         {reviews.map((r) => (
           <article
             key={r.id}
-            className="flex flex-col rounded-2xl border border-border bg-card p-6"
+            className="flex min-w-0 flex-col rounded-2xl border border-border bg-card p-6"
           >
             <div className="flex gap-0.5 text-accent">
               {[...Array(5)].map((_, i) => (
@@ -55,9 +55,11 @@ export function ReviewsSection() {
             <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-muted-foreground">
               {r.body}
             </p>
-            <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3 text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground">{r.user_name}</span>
-              {r.product_name && <span className="truncate">{r.product_name}</span>}
+            <div className="mt-4 flex min-w-0 items-center justify-between gap-3 border-t border-border pt-3 text-xs text-muted-foreground">
+              <span className="shrink-0 font-semibold text-foreground">{r.user_name}</span>
+              {r.product_name && (
+                <span className="min-w-0 truncate text-right">{r.product_name}</span>
+              )}
             </div>
           </article>
         ))}

@@ -5,8 +5,8 @@ export type Lang = "en" | "fr" | "ar";
 const STORAGE_KEY = "petpals_lang";
 
 export const LANGS: { code: Lang; label: string }[] = [
-  { code: "fr", label: "Français" },
   { code: "en", label: "English" },
+  { code: "fr", label: "Français" },
   { code: "ar", label: "العربية" },
 ];
 
@@ -28,8 +28,8 @@ const en: Dict = {
   "trust.cod": "Cash on delivery",
   "trust.open": "Open {hours}",
   "hero.shop": "Shop Now",
-  "categories.title": "Pets Products",
-  "products.title": "Our Best Products",
+  "categories.title": "Shop by Category",
+  "products.title": "Shop the Collection",
   "products.subtitle":
     "Hand-picked favorites loved by pets and their people — fresh from the shop.",
   "products.add": "Add to Cart",
@@ -513,7 +513,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
-    return "fr";
+    return "en";
   });
 
   const dir: "ltr" | "rtl" = lang === "ar" ? "rtl" : "ltr";
