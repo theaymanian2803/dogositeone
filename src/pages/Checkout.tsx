@@ -30,6 +30,7 @@ export default function Checkout() {
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
+    email: "",
     phone: "",
     address: "",
   });
@@ -50,6 +51,7 @@ export default function Checkout() {
       ...f,
       first_name: f.first_name || (parts[0] ?? ""),
       last_name: f.last_name || parts.slice(1).join(" "),
+      email: f.email || user.email,
     }));
   }, [user]);
 
@@ -121,10 +123,11 @@ export default function Checkout() {
     if (items.length === 0) return;
     setPlacing(true);
     try {
+      const orderId = crypto.randomUUID();
       await turso.execute({
         sql: "INSERT INTO orders (id, first_name, last_name, phone, address, items, total) VALUES (?, ?, ?, ?, ?, ?, ?)",
         args: [
-          crypto.randomUUID(),
+          orderId,
           form.first_name.trim(),
           form.last_name.trim(),
           form.phone.trim(),
@@ -141,6 +144,33 @@ export default function Checkout() {
           total,
         ],
       });
+
+      await fetch("/api/send-order-email", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          orderId,
+          customer: {
+            name: `${form.first_name.trim()} ${form.last_name.trim()}`.trim(),
+            email: form.email.trim(),
+            phone: form.phone.trim(),
+            address: form.address.trim(),
+          },
+          items: items.map((i) => ({
+            name: i.name,
+            qty: i.qty,
+            price: Number(i.price),
+            image_url: i.image_url,
+          })),
+          subtotal,
+          shipping,
+          total,
+          currency: "MAD",
+        }),
+      }).catch(() => {
+        // The order is already saved; email must never block checkout.
+      });
+
       clear();
       try {
         localStorage.setItem("petpals_last_phone", form.phone.trim());
@@ -290,6 +320,18 @@ export default function Checkout() {
                         placeholder="e.g. Doe"
                         value={form.last_name}
                         onChange={(e) => update("last_name", e.target.value)}
+                        className="h-10 w-full border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-accent"
+                      />
+                    </div>
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <label className="text-xs font-medium text-muted-foreground">Email</label>
+                      <input
+                        required
+                        maxLength={200}
+                        type="email"
+                        placeholder="you@example.com"
+                        value={form.email}
+                        onChange={(e) => update("email", e.target.value)}
                         className="h-10 w-full border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-accent"
                       />
                     </div>

@@ -44,6 +44,10 @@ branding, shipping, contact details and the database connection.
 | `bun run test`     | Vitest                                 |
 | `bun run seed:all` | Seed auth, products and demo orders    |
 
+## Email
+
+Orders send a Resend receipt to the customer and a new-order alert to the owner. Set the server-only EMAIL_* variables in Vercel and .env; verify the sender domain in Resend. Local dev uses the Vite middleware in ite.config.ts; production uses pi/send-order-email.ts (Edge function). Checkout still succeeds when email is disabled.
+
 ## Notes
 
 - The demo brand can be pinned in `src/lib/brand.ts`; leave it empty to let the admin's Store settings control branding.
